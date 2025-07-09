@@ -1,0 +1,1 @@
+Update `HUD.md` with phase transition status and next session priorities.
