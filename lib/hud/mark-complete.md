@@ -1,0 +1,1 @@
+Update `HUD.md` with implementation progress and mark completed tasks.
