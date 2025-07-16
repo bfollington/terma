@@ -1,0 +1,1 @@
+Update `HUD.md` to mark bug as resolved and clean from active items.

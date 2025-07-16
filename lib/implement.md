@@ -2,6 +2,8 @@ Create one or more subagents and delegate tasks to implement the plan.
 
 !include(./subagent.md)
 
+!include(./hud/mark-complete.md)
+
 ## SWE Process
 
 !include(./swe.md)

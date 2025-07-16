@@ -1,0 +1,1 @@
+Update `HUD.md` with session completion status and next priorities.
