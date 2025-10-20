@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3 uid="uid://template_item"]
+
+[ext_resource type="Script" path="res://src/items/item_resource.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+item_id = "example_item"
+item_name = "Example Item"
+description = "A template item resource"
+stackable = true
+max_stack = 99

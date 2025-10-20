@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SpellResource" load_steps=3 format=3 uid="uid://template_spell"]
+
+[ext_resource type="Script" path="res://src/spells/spell_resource.gd" id="1_spell"]
+[ext_resource type="Script" path="res://src/spells/spell_effect.gd" id="2_effect"]
+
+[sub_resource type="Resource" id="Effect_damage"]
+script = ExtResource("2_effect")
+effect_type = 0
+magnitude_min = 10.0
+magnitude_max = 20.0
+duration = 0.0
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Magic Missile"
+spell_id = "magic_missile"
+mana_cost = 15.0
+spell_color = Color(0.5, 0.5, 1, 1)
+projectile_speed = 20.0
+effects = Array[ExtResource("2_effect")]([SubResource("Effect_damage")])
