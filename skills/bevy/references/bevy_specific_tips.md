@@ -1,5 +1,127 @@
 # Bevy-Specific Development Tips
 
+## Bevy 0.17 Specific Changes
+
+**Important:** Bevy 0.17 introduced several breaking API changes. If you encounter compilation errors related to materials, events, or colors, refer to this section.
+
+### Material Component Wrapper
+
+In Bevy 0.17, material handles are wrapped in `MeshMaterial3d<T>`:
+
+```rust
+// ❌ Bevy 0.15/0.16 - This will fail in 0.17
+Query<&Handle<StandardMaterial>>
+
+// ✅ Bevy 0.17 - Use the wrapper component
+Query<&MeshMaterial3d<StandardMaterial>>
+
+// Access the inner handle with .0
+fn update_materials(
+    query: Query<&MeshMaterial3d<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for material_3d in query.iter() {
+        if let Some(material) = materials.get_mut(&material_3d.0) {
+            material.emissive = LinearRgba::RED;
+        }
+    }
+}
+```
+
+**Error symptoms:**
+- `Handle<StandardMaterial> is not a Component`
+- Query trait bounds not satisfied
+
+**Solution:** Always use `MeshMaterial3d<T>` wrapper when querying material components.
+
+### Observer Pattern (Replaces Events)
+
+Bevy 0.17 introduces observers as a replacement for the event system:
+
+```rust
+// ❌ Old event pattern (Bevy 0.15/0.16)
+#[derive(Event)]
+struct SpellCastEvent { spell_name: String }
+
+app.add_event::<SpellCastEvent>()
+   .add_systems(Update, handle_spell_cast);
+
+fn handle_spell_cast(mut events: EventReader<SpellCastEvent>) {
+    for event in events.read() {
+        info!("Cast: {}", event.spell_name);
+    }
+}
+
+fn cast_spell(mut events: EventWriter<SpellCastEvent>) {
+    events.send(SpellCastEvent { spell_name: "Fireball".into() });
+}
+
+// ✅ Bevy 0.17 observer pattern
+#[derive(Event, Clone)]  // Must derive Clone!
+struct SpellCastEvent { spell_name: String }
+
+app.add_observer(handle_spell_cast);  // Observer, not system
+
+fn handle_spell_cast(
+    trigger: Trigger<SpellCastEvent>,  // Trigger parameter
+    // ... other system params
+) {
+    let event = trigger.event();
+    info!("Cast: {}", event.spell_name);
+}
+
+fn cast_spell(mut commands: Commands) {
+    commands.trigger(SpellCastEvent { spell_name: "Fireball".into() });
+}
+```
+
+**Key differences:**
+- Events **must derive `Clone`** in addition to `Event`
+- Use `add_observer(handler)` instead of `add_event()` + `add_systems()`
+- Handler takes `Trigger<T>` as first parameter, use `.event()` to access data
+- Trigger with `commands.trigger()` instead of `EventWriter::send()`
+- Observers are not systems - they're called directly when triggered
+
+**Error symptoms:**
+- `MyEvent is not a Message`
+- `method 'send' not found for MessageWriter`
+- `method 'read' not found`
+
+**Solution:** Migrate to the observer pattern as shown above.
+
+### Color Operations
+
+Direct color arithmetic operations aren't supported in Bevy 0.17:
+
+```rust
+// ❌ Doesn't compile
+let emissive = color * 0.5;
+let darker = color - 0.2;
+
+// ✅ Extract components manually
+let emissive = Color::srgb(
+    color.to_srgba().red * 0.5,
+    color.to_srgba().green * 0.5,
+    color.to_srgba().blue * 0.5,
+);
+
+// Or use LinearRgba for math operations
+let linear = color.to_linear();
+let dimmed = LinearRgba::rgb(
+    linear.red * 0.5,
+    linear.green * 0.5,
+    linear.blue * 0.5,
+);
+```
+
+**Error symptoms:**
+- `cannot multiply Color by {float}`
+- `no implementation for Color * f32`
+
+**Solution:** Convert to component form or use `LinearRgba` for mathematical operations.
+
+---
+
 ## Using Bevy Registry Examples
 
 **The registry examples are your bible.** Bevy ships with extensive examples that demonstrate best practices and patterns.

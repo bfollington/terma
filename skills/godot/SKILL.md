@@ -447,7 +447,38 @@ item_resource = ExtResource("7_key")
 
 ## Best Practices
 
-### 1. Always Validate After Editing .tres/.tscn
+### 1. Consult References for Common Issues
+
+When encountering issues, consult the reference documentation:
+
+**`references/common-pitfalls.md`** - Common Godot gotchas and solutions:
+- Initialization and @onready timing issues
+- Node reference and get_node() problems
+- Signal connection issues
+- Resource loading and modification
+- CharacterBody3D movement
+- Transform and basis confusion
+- Input handling
+- Type safety issues
+- Scene instancing pitfalls
+- Tween issues
+
+**`references/godot4-physics-api.md`** - Physics API quick reference:
+- Correct raycast API (`PhysicsRayQueryParameters3D`)
+- Shape queries and collision detection
+- Collision layers and masks
+- Area3D vs RigidBody3D vs CharacterBody3D
+- Common physics patterns
+- Performance tips
+
+Load these when:
+- Getting null reference errors
+- Implementing physics/collision systems
+- Debugging timing issues with @onready
+- Working with CharacterBody3D movement
+- Setting up raycasts or shape queries
+
+### 2. Always Validate After Editing .tres/.tscn
 
 ```bash
 python3 scripts/validate_tres.py path/to/file.tres

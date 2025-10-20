@@ -1,6 +1,74 @@
 # Common Bevy Pitfalls Reference
 
-## 1. Forgetting to Register Systems
+## 1. Using Old Event System in Bevy 0.17
+
+**❌ Problem:**
+```rust
+// Bevy 0.15/0.16 event system doesn't work in 0.17
+#[derive(Event)]
+struct MyEvent { data: String }
+
+app.add_event::<MyEvent>()
+   .add_systems(Update, handle_event);
+
+fn handle_event(mut events: EventReader<MyEvent>) { /* ... */ }
+fn trigger(mut events: EventWriter<MyEvent>) { /* ... */ }
+```
+
+**Symptoms:**
+- Compilation error: `MyEvent is not a Message`
+- `method 'send' not found for MessageWriter`
+- `method 'read' not found for MessageReader`
+
+**✅ Solution:**
+Migrate to the observer pattern:
+```rust
+// Bevy 0.17 observer pattern
+#[derive(Event, Clone)]  // Must derive Clone!
+struct MyEvent { data: String }
+
+app.add_observer(handle_event);  // Use observer, not system
+
+fn handle_event(
+    trigger: Trigger<MyEvent>,  // Trigger parameter
+    // ... other params
+) {
+    let event = trigger.event();
+}
+
+fn trigger_event(mut commands: Commands) {
+    commands.trigger(MyEvent { data: "test".into() });
+}
+```
+
+See `references/bevy_specific_tips.md` for complete migration guide.
+
+## 2. Querying Material Handles in Bevy 0.17
+
+**❌ Problem:**
+```rust
+// Bevy 0.15/0.16 pattern doesn't work in 0.17
+Query<&Handle<StandardMaterial>>
+```
+
+**Symptoms:**
+- `Handle<StandardMaterial> is not a Component`
+- Query trait bounds not satisfied
+
+**✅ Solution:**
+Use the `MeshMaterial3d` wrapper:
+```rust
+Query<&MeshMaterial3d<StandardMaterial>>
+
+// Access handle with .0
+for material_3d in query.iter() {
+    if let Some(material) = materials.get_mut(&material_3d.0) {
+        material.emissive = color;
+    }
+}
+```
+
+## 3. Forgetting to Register Systems
 
 **❌ Problem:**
 ```rust

@@ -20,6 +20,15 @@ Invoke this skill when:
 
 ## Before You Start: Essential Bevy Tips
 
+### ⚠️ Bevy 0.17 Breaking Changes
+
+**If working with Bevy 0.17**, be aware of significant API changes:
+- Material handles now wrapped in `MeshMaterial3d<T>` (not `Handle<T>`)
+- Event system replaced with observer pattern (`commands.trigger()`, `add_observer()`)
+- Color arithmetic operations removed (use component extraction)
+
+**See `references/bevy_specific_tips.md` for complete Bevy 0.17 migration guide and examples.**
+
 ### Consult Bevy Registry Examples First
 
 **The registry examples are your bible.** Always check them before implementing new features.
