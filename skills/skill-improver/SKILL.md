@@ -156,6 +156,8 @@ Use this to recognize patterns and find proven solutions.
 
 ## Example Usage
 
+### Example 1: Missing Scripts
+
 **Scenario**: After using the `pdf-editor` skill to rotate several PDFs, Claude had to rewrite rotation code multiple times due to varying file permissions.
 
 **Reflection**:
@@ -170,6 +172,31 @@ Use this to recognize patterns and find proven solutions.
    - **Impact**: High - eliminates code rewriting, prevents permission errors
    - **Implementation**: Create script, update SKILL.md to reference it
 5. **Execution**: Use skill-creator to add script and update documentation
+
+### Example 2: Missing Reference Documentation
+
+**Scenario**: After creating a Lorn/Clams Casino inspired beat using the `strudel` skill, user feedback revealed bass tone missed the mark. User corrected: "don't need to encode every iteration" and "bass tone not reminding me of references."
+
+**Reflection**:
+1. **Context**: Used strudel skill for dark ambient hip-hop, encountered two issues
+2. **Framework application**:
+   - Process execution: URL encoding was inefficient during iterations
+   - Skill content: No guidance for translating artist references into techniques
+3. **Pattern recognition**: Matches "Vague workflow steps" and "Missing reference documentation"
+4. **Improvement formulation**:
+   - **Skill/Process**: strudel
+   - **Issue #1**: Encoded URL after every iteration; user said only needed on initial creation
+   - **Root Cause**: Skill said "Always encode after modifications" - too broad
+   - **Proposed Change**: Clarify when to encode (initial only, skip iterations, final if requested)
+   - **Impact**: Medium - prevents unnecessary work
+   - **Implementation**: Update SKILL.md section "Providing Output to the User"
+
+   - **Issue #2**: No systematic guide for artist characteristics (Lorn, Clams Casino)
+   - **Root Cause**: No reference for common genre/artist styles
+   - **Proposed Change**: Create `references/genre-styles.md` with artist characteristics and Strudel techniques
+   - **Impact**: High - translates user references into concrete implementation
+   - **Implementation**: Create reference file, update SKILL.md to reference it
+5. **Execution**: Used skill-creator to implement both improvements; user approved both
 
 ## Philosophy: Skillful Means
 

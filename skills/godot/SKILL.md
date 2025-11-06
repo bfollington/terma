@@ -1,6 +1,6 @@
 ---
 name: godot
-description: This skill should be used when working on Godot Engine projects. It provides specialized knowledge of Godot's file formats (.gd, .tscn, .tres), architecture patterns (component-based, signal-driven, resource-based), common pitfalls, validation tools, and code templates. Use this skill for tasks involving Godot game development, debugging scene/resource files, implementing game systems, or creating new Godot components.
+description: This skill should be used when working on Godot Engine projects. It provides specialized knowledge of Godot's file formats (.gd, .tscn, .tres), architecture patterns (component-based, signal-driven, resource-based), common pitfalls, validation tools, code templates, and CLI workflows. The `godot` command is available for running the game, validating scripts, importing resources, and exporting builds. Use this skill for tasks involving Godot game development, debugging scene/resource files, implementing game systems, or creating new Godot components.
 ---
 
 # Godot Engine Development Skill
@@ -445,6 +445,36 @@ item_resource = ExtResource("7_key")
 
 **Prevention:** After instancing any scene with configurable children (PickupInteraction, DoorInteraction, etc.), always verify critical properties are overridden.
 
+### Pitfall 6: CPUParticles3D color_ramp Not Displaying Colors
+
+**Problem:** Setting `color_ramp` on CPUParticles3D, but particles still appear white or don't show the gradient colors.
+
+```tres
+[node name="CPUParticles3D" type="CPUParticles3D" parent="."]
+mesh = SubResource("SphereMesh_1")
+color_ramp = SubResource("Gradient_1")  # Gradient is set but doesn't work!
+```
+
+**Root Cause:** The mesh needs a material with `vertex_color_use_as_albedo = true` to apply particle colors to the mesh surface.
+
+**Solution:** Add a StandardMaterial3D to the mesh with vertex color enabled:
+
+```tres
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+vertex_color_use_as_albedo = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_1"]
+material = SubResource("StandardMaterial3D_1")
+radius = 0.12
+height = 0.24
+
+[node name="CPUParticles3D" type="CPUParticles3D" parent="."]
+mesh = SubResource("SphereMesh_1")
+color_ramp = SubResource("Gradient_1")  # Now works!
+```
+
+**Prevention:** When creating CPUParticles3D with `color` or `color_ramp`, always add a material with `vertex_color_use_as_albedo = true` to the mesh.
+
 ## Best Practices
 
 ### 1. Consult References for Common Issues
@@ -535,6 +565,111 @@ Make configuration visible and editable:
 
 @export_group("Combat")
 @export var damage: int = 10
+```
+
+## Using the Godot CLI
+
+The `godot` command-line tool is available for running the game and performing various operations without opening the editor.
+
+### Running the Game
+
+**Run the current project:**
+```bash
+godot --path . --headless
+```
+
+**Run a specific scene:**
+```bash
+godot --path . --scene scenes/main_menu.tscn
+```
+
+**Run with debug flags:**
+```bash
+# Show collision shapes
+godot --path . --debug-collisions
+
+# Show navigation debug visuals
+godot --path . --debug-navigation
+
+# Show path lines
+godot --path . --debug-paths
+```
+
+### Checking/Validating Code
+
+**Check GDScript syntax without running:**
+```bash
+godot --path . --check-only --script path/to/script.gd
+```
+
+**Run headless tests (for automated testing):**
+```bash
+godot --path . --headless --quit --script path/to/test_script.gd
+```
+
+### Editor Operations from CLI
+
+**Import resources without opening editor:**
+```bash
+godot --path . --import --headless --quit
+```
+
+**Export project:**
+```bash
+# Export release build
+godot --path . --export-release "Preset Name" builds/game.exe
+
+# Export debug build
+godot --path . --export-debug "Preset Name" builds/game_debug.exe
+```
+
+### Common CLI Workflows
+
+**Workflow: Quick Test Run**
+```bash
+# Run the project and quit after testing
+godot --path . --quit-after 300  # Runs for 300 frames then quits
+```
+
+**Workflow: Automated Resource Import**
+```bash
+# Import all resources and exit (useful in CI/CD)
+godot --path . --import --headless --quit
+```
+
+**Workflow: Script Validation**
+```bash
+# Validate a GDScript file before committing
+godot --path . --check-only --script src/player/player.gd
+```
+
+**Workflow: Headless Server**
+```bash
+# Run as dedicated server (no rendering)
+godot --path . --headless --scene scenes/multiplayer_server.tscn
+```
+
+### CLI Usage Tips
+
+1. **Always specify `--path .`** when running from project directory to ensure Godot finds `project.godot`
+2. **Use `--headless`** for CI/CD and automated testing (no window, no rendering)
+3. **Use `--quit` or `--quit-after N`** to exit automatically after task completion
+4. **Combine `--check-only` with `--script`** to validate GDScript syntax quickly
+5. **Use debug flags** (`--debug-collisions`, `--debug-navigation`) to visualize systems during development
+6. **Check exit codes** - Non-zero indicates errors (useful for CI/CD scripts)
+
+### Example: Pre-commit Hook for GDScript Validation
+
+```bash
+#!/bin/bash
+# Validate all changed .gd files before committing
+
+for file in $(git diff --cached --name-only --diff-filter=ACM | grep '\.gd$'); do
+    if ! godot --path . --check-only --script "$file" --headless --quit; then
+        echo "GDScript validation failed for $file"
+        exit 1
+    fi
+done
 ```
 
 ## Quick Reference
