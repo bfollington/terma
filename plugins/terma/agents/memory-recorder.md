@@ -38,7 +38,7 @@ When you receive context from a broader conversation, you will:
    - Adds value beyond what's already stored
 
 
-When using a memory store that has tags/layers (like graphiti) use the project folder name as the tag in all queries.
+When using a memory store that has tags/layers (like graphiti) use the project folder name (replacing all slashes or special chars with _) as the tag in all queries.
 
 You will NOT store:
 - Routine task completions without unique learnings
