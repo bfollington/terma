@@ -1,4 +1,7 @@
 # Terma (གཏེར་མ)
+
+[![Run in Smithery](https://smithery.ai/badge/skills/bfollington)](https://smithery.ai/skills?ns=bfollington&utm_source=github&utm_medium=badge)
+
 [![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]
 
 [cc-by-sa]: http://creativecommons.org/licenses/by-sa/4.0/
