@@ -26,28 +26,28 @@ claude --plugin-dir ./plugins/terma --plugin-dir ./plugins/tsal
 
 ## Quick Start
 
-Use `/terma:orient` to begin each session. Use `/terma:research :question` to probe the codebase and write a report to `/research`. Then, use `/terma:plan` or just `/terma:feature` to plan a change to the application.
+Use `/terma:orient` to begin each session. Use `/terma:research :question` to probe the codebase and write a report to `/research`. Then, use `/terma:plan` to plan a change to the application.
 
 Use `/terma:implement` to spin up one or more well-instructed subagents to implement the plan.
 
-You may find use for `/terma:debug`, `/terma:code-review`, `/terma:harden` after implementation.
+Use `/terma:code-review` after implementation. Use `/terma:ideate` to brainstorm.
 
-When you are at a known good state (i.e. about to commit) use `/terma:progress` to write a progress report and update `LOG.md`, then commit w/ the `.md` file included. `/terma:next-up` is like `/terma:progress` but moves straight on to whatever additional task you provide.
+## Core Commands
 
-You can use `/terma:bug-report` to interactively gather and record context for known issues, and use `/terma:resolve` to resolve them.
-
-We currently assume a protocol of `LOG.md`, `BUGS.md`, `SPEC.md`, `CLAUDE.md` etc. but this will and should be customized to fit.
+| Command | Purpose |
+|---------|---------|
+| `/terma:orient` | Explore and summarize the project structure |
+| `/terma:research` | Deep-dive investigation, writes report to `/research` |
+| `/terma:plan` | Plan next steps without implementing |
+| `/terma:implement` | Delegate implementation to subagents |
+| `/terma:code-review` | Review code for quality and consistency |
+| `/terma:ideate` | Brainstorm using the ideation card deck |
 
 ## Patterns
 
-- feature dev: `/terma:orient`, `/terma:feature`, `/terma:implement`, `/terma:progress`, `/compact` (loop)
-  - then: `/terma:code-review`
-
-- bugs: `/terma:bug-report`, `/terma:debug`, `/terma:resolve`, `/terma:code-review`
-
-- tech spike: `/terma:prototype`, `/terma:debug`
-
-- improve codebase architecture: `/terma:orient`, `/terma:research`, `/terma:decompose`, `/terma:code-review`
+- feature dev: `/terma:orient`, `/terma:plan`, `/terma:implement`, `/terma:code-review`
+- research: `/terma:orient`, `/terma:research`
+- brainstorm: `/terma:ideate`
 
 ## Structure
 
@@ -55,9 +55,8 @@ We currently assume a protocol of `LOG.md`, `BUGS.md`, `SPEC.md`, `CLAUDE.md` et
 .claude-plugin/marketplace.json   # Marketplace manifest
 plugins/terma/                    # Process & philosophy plugin
   .claude-plugin/plugin.json      # Plugin manifest
-  commands/                       # Slash commands
   agents/                         # Subagent definitions
-  skills/                         # Meta skills (skill-improver)
+  skills/                         # Commands & meta skills
   lib/                            # Shared philosophy & process modules
 plugins/tsal/                     # Domain-specific skills plugin
   .claude-plugin/plugin.json      # Plugin manifest
@@ -66,7 +65,7 @@ plugins/tsal/                     # Domain-specific skills plugin
 
 ## Customizing
 
-Edit anything under `plugins/terma/` or `plugins/tsal/`. The `lib/` directory in terma contains composable modules referenced by commands via `@` paths. Domain-specific skills live in tsal and can be modified independently.
+Edit anything under `plugins/terma/` or `plugins/tsal/`. The `lib/` directory in terma contains composable modules referenced by skills via `@` paths. Domain-specific skills live in tsal and can be modified independently.
 
 ## Trivia
 
