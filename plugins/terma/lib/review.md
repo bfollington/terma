@@ -21,14 +21,20 @@ Also consider the lessons of Erlang (Joe Armstrong), Elixir (José Valim), Elm (
 ### Type Safety & Data
 - **Make invalid states unrepresentable**
 
+Read and apply the guidance from @./type-driven.md
+
 ### Error Handling
 - **Handle errors gracefully, or design APIs that make errors impossible**
 - Prefer throwing over silent failures or unclear undefined returns
+
+Read and apply the guidance from @./error-design.md
 
 ### Functional Style
 - **Prefer a pure, functional programming style** over imperative approaches
 - Favor immutable data transformations in library code
 - Minimize side effects and make them explicit when necessary
+
+Read and apply the guidance from @./functional-architecture.md
 
 ### Code Style
 

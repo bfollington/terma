@@ -10,3 +10,5 @@
 - rigor and intentionality upfront is worth it
 
 write code like Rich Hickey
+
+Read and apply the guidance from @../../lib/code-style.md

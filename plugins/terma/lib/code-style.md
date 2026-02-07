@@ -2,4 +2,8 @@ We always prefer functional programming over spaghetti-code mutable references. 
 
 We're possible we would prefer to represent things as plain data that can be printed, manipulated and operated on by a small set of well-designed functions. This is very much inspired by the closure, language, and Ridge Hickey's discussion about software engineering best practices.
 
-Read and apply the guidance from @./modules.md
+## Modules
+
+Modules should be namespaced carefully, they should be decoupled as much as possible, and be of medium size. You don't want a constellation of tiny modules, everything overly decomposed, but when a module is straining to find a single focus, it should split into two modules, and this is something we should do all the time throughout our process of software engineering. To identify when a file or a module is growing beyond its limit, and consider the best way to split off what we're doing into at least two different pieces and continue on. So not boiling the ocean and re-igitating the whole module or code base, but splitting modules regularly to make sure we don't end up with giant files that are hard to traverse.
+
+Modules may mean simply splitting a file into two, or a more formal decision about directory structure in the application. When we create or change the purpose of any _directory_ module, we should write an MOD.md file in the module root.

@@ -6,10 +6,6 @@ Use the type system as an active design tool that guides implementation and prov
 
 ## Key Principles
 
-Read and apply the guidance from @./types-first.md
-
-Read and apply the guidance from @./type-inference-guidance.md
-
 ## The Type-Driven Process
 
 ### 1. Model the Domain
