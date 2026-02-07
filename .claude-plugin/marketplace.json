@@ -13,6 +13,13 @@
       "description": "Commands, agents, and skills for structured LLM-assisted development",
       "version": "1.0.0",
       "license": "CC-BY-SA-4.0"
+    },
+    {
+      "name": "tsal",
+      "source": "./plugins/tsal",
+      "description": "Domain-specific skills for game engines, creative coding, and design patterns",
+      "version": "1.0.0",
+      "license": "CC-BY-SA-4.0"
     }
   ]
 }

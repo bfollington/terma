@@ -4,18 +4,21 @@ Instructions for AI agents working on this repository.
 
 ## What This Is
 
-Terma is a Claude Code plugin marketplace. The repo root is the marketplace, and `plugins/terma/` contains the terma plugin with commands, agents, skills, and shared lib modules.
+Terma is a Claude Code plugin marketplace. The repo root is the marketplace, containing two plugins: `plugins/terma/` (development process commands, agents, and lib modules) and `plugins/tsal/` (domain-specific skills).
 
 ## Repository Layout
 
 ```
 .claude-plugin/marketplace.json     # Marketplace manifest
-plugins/terma/                      # The terma plugin
+plugins/terma/                      # Process & philosophy plugin
   .claude-plugin/plugin.json        # Plugin manifest
   commands/                         # Slash commands (18 .md files)
   agents/                           # Subagent definitions (6 .md files)
-  skills/                           # Domain skills (bevy, godot, strudel, etc.)
+  skills/                           # Meta skills (skill-improver)
   lib/                              # Shared philosophy & process modules
+plugins/tsal/                       # Domain-specific skills plugin
+  .claude-plugin/plugin.json        # Plugin manifest
+  skills/                           # Domain skills (bevy, godot, strudel, etc.)
 .claude/commands/                   # Project-local dev commands (not part of plugin)
 build.ts, build.sh                  # Legacy build tools (optional)
 ```
@@ -51,7 +54,15 @@ This makes all terma commands, agents, and skills available in the session. Veri
 
 1. Checking commands are visible: `/terma:feature`, `/terma:plan`, etc.
 2. Checking agents appear in the agents list
-3. Checking skills are discoverable (e.g. bevy, godot, strudel)
+3. Checking skills are discoverable (e.g. skill-improver)
+
+To test tsal:
+
+```bash
+claude --plugin-dir ./plugins/tsal
+```
+
+Verify domain skills are discoverable (e.g. bevy, godot, strudel)
 
 ## Installing from Local Path
 
@@ -108,7 +119,9 @@ When the plugin is installed, the entire `plugins/terma/` directory is cached, s
 
 ### Adding a New Skill
 
-1. Create a directory under `plugins/terma/skills/`
+Domain-specific skills go in `plugins/tsal/skills/`. Meta/process skills go in `plugins/terma/skills/`.
+
+1. Create a directory under the appropriate plugin's `skills/`
 2. Add a `SKILL.md` with YAML frontmatter (`name`, `description`)
 3. Add `references/` subdirectory for supporting documentation
 4. Add `assets/` for templates, examples, etc.

@@ -15,12 +15,13 @@ From within Claude Code:
 ```
 /plugin marketplace add <git-url-or-local-path>
 /plugin install terma@terma
+/plugin install terma@tsal
 ```
 
 Or test locally during development:
 
 ```
-claude --plugin-dir ./plugins/terma
+claude --plugin-dir ./plugins/terma --plugin-dir ./plugins/tsal
 ```
 
 ## Quick Start
@@ -52,17 +53,20 @@ We currently assume a protocol of `LOG.md`, `BUGS.md`, `SPEC.md`, `CLAUDE.md` et
 
 ```
 .claude-plugin/marketplace.json   # Marketplace manifest
-plugins/terma/                    # The terma plugin
+plugins/terma/                    # Process & philosophy plugin
   .claude-plugin/plugin.json      # Plugin manifest
   commands/                       # Slash commands
   agents/                         # Subagent definitions
-  skills/                         # Domain skills (bevy, godot, strudel, etc.)
+  skills/                         # Meta skills (skill-improver)
   lib/                            # Shared philosophy & process modules
+plugins/tsal/                     # Domain-specific skills plugin
+  .claude-plugin/plugin.json      # Plugin manifest
+  skills/                         # Domain skills (bevy, godot, strudel, etc.)
 ```
 
 ## Customizing
 
-Edit anything under `plugins/terma/`. The `lib/` directory contains composable modules referenced by commands via `@` paths. Skills, agents, and commands can all be modified independently.
+Edit anything under `plugins/terma/` or `plugins/tsal/`. The `lib/` directory in terma contains composable modules referenced by commands via `@` paths. Domain-specific skills live in tsal and can be modified independently.
 
 ## Trivia
 
