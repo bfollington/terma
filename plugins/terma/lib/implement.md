@@ -13,7 +13,3 @@ Read and apply the guidance from @./domain-driven-design.md
 ## Code Style
 
 Read and apply the guidance from @./code-style.md
-
-## File Structure
-
-Read and apply the guidance from @./files.md
