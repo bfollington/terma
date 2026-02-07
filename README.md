@@ -6,49 +6,67 @@
 
 This is a highly-opinionated library of philosophy and process for developing software with LLMs, specifically Claude Code.
 
-Copy/clone the contents of `out` into `~/.claude/commands` to install these across all projects.
+Distributed as a Claude Code plugin marketplace.
 
 ## Installation
 
-`mkdir -p ~/.claude/commands/terma`
-`mkdir -p ~/.claude/agents/terma`
+From within Claude Code:
 
-`ln -s <CHECKOUT>/out/commands ~/.claude/commands/terma`
-`ln -s <CHECKOUT>/subagents ~/.claude/agents/terma`
+```
+/plugin marketplace add <git-url-or-local-path>
+/plugin install terma@terma
+```
+
+Or test locally during development:
+
+```
+claude --plugin-dir ./plugins/terma
+```
 
 ## Quick Start
 
-Use `/orient` to begin each session. Use `/research :question` to probe the codebase and write a report to `/research`. Then, use `/plan` or just `/feature` to plan a change to the application.
+Use `/terma:orient` to begin each session. Use `/terma:research :question` to probe the codebase and write a report to `/research`. Then, use `/terma:plan` or just `/terma:feature` to plan a change to the application.
 
-Use `/implement` to spin up one or more well-instructed subagents to implement the plan.
+Use `/terma:implement` to spin up one or more well-instructed subagents to implement the plan.
 
-You may find use for `/debug`, `/code-review`, `/harden` after implementation.
+You may find use for `/terma:debug`, `/terma:code-review`, `/terma:harden` after implementation.
 
-When you are at a known good state (i.e. about to commit) use `/progress` to write a progress report and update `LOG.md`, then commit w/ the `.md` file included. `/next-up` is like `/progress` but moves straight on to whatever additional task you provide.
+When you are at a known good state (i.e. about to commit) use `/terma:progress` to write a progress report and update `LOG.md`, then commit w/ the `.md` file included. `/terma:next-up` is like `/terma:progress` but moves straight on to whatever additional task you provide.
 
-You can use `/bug-report` to interactiely gather and record context for known issues, and use `/resolve` to resolve them.
+You can use `/terma:bug-report` to interactively gather and record context for known issues, and use `/terma:resolve` to resolve them.
 
 We currently assume a protocol of `LOG.md`, `BUGS.md`, `SPEC.md`, `CLAUDE.md` etc. but this will and should be customized to fit.
 
 ## Patterns
 
-- feature dev: `/orient`, `/feature`, `/implement`, `/progress`, `/compact` (loop)
-  - then: `/code-review`
+- feature dev: `/terma:orient`, `/terma:feature`, `/terma:implement`, `/terma:progress`, `/compact` (loop)
+  - then: `/terma:code-review`
 
-- bugs: `/bug-report`, `/debug`, `/resolve`, `/code-review`
+- bugs: `/terma:bug-report`, `/terma:debug`, `/terma:resolve`, `/terma:code-review`
 
-- tech spike: `/prototype`, `/debug`
+- tech spike: `/terma:prototype`, `/terma:debug`
 
-- improve codebase architecture: `/orient`, `/research`, `/decompose`, `/code-review`
+- improve codebase architecture: `/terma:orient`, `/terma:research`, `/terma:decompose`, `/terma:code-review`
+
+## Structure
+
+```
+.claude-plugin/marketplace.json   # Marketplace manifest
+plugins/terma/                    # The terma plugin
+  .claude-plugin/plugin.json      # Plugin manifest
+  commands/                       # Slash commands
+  agents/                         # Subagent definitions
+  skills/                         # Domain skills (bevy, godot, strudel, etc.)
+  lib/                            # Shared philosophy & process modules
+```
 
 ## Customizing
 
-The build depends on `deno`.
-You can edit anything in `lib` or the root and run and use `./build.sh` to rebuild all. We use a simple `remark` transform for text inclusion, nothing fancy.
+Edit anything under `plugins/terma/`. The `lib/` directory contains composable modules referenced by commands via `@` paths. Skills, agents, and commands can all be modified independently.
 
 ## Trivia
 
-The `subagent.md` file encourages "ultrathinking", which may burn through usage quickly. Consider customizing it manually until we have variables.
+The `subagent.md` lib module encourages "ultrathinking", which may burn through usage quickly. Consider customizing it manually until we have variables.
 
 ## License
 

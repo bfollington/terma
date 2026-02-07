@@ -1,0 +1,18 @@
+{
+  "name": "terma",
+  "owner": {
+    "name": "Ben"
+  },
+  "metadata": {
+    "description": "Opinionated library of philosophy and process for developing software with LLMs"
+  },
+  "plugins": [
+    {
+      "name": "terma",
+      "source": "./plugins/terma",
+      "description": "Commands, agents, and skills for structured LLM-assisted development",
+      "version": "1.0.0",
+      "license": "CC-BY-SA-4.0"
+    }
+  ]
+}

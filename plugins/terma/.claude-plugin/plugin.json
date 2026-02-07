@@ -1,0 +1,6 @@
+{
+  "name": "terma",
+  "description": "Opinionated library of philosophy and process for developing software with LLMs",
+  "version": "1.0.0",
+  "license": "CC-BY-SA-4.0"
+}

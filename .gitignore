@@ -1,2 +1,6 @@
-out/.DS_Store
 .DS_Store
+
+# Claude Code blackboard
+.claude/blackboard.db
+.claude/blackboard.db-wal
+.claude/blackboard.db-shm
