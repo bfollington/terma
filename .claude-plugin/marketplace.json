@@ -22,10 +22,10 @@
       "license": "CC-BY-SA-4.0"
     },
     {
-      "name": "sqlite",
-      "source": "./plugins/sqlite",
-      "description": "Use sqlite for managing any domain (instead of markdown files)",
-      "version": "1.0.0",
+      "name": "notes",
+      "source": "./plugins/notes",
+      "description": "Use sqlite for managing notes (instead of markdown files)",
+      "version": "1.0.3",
       "license": "CC-BY-SA-4.0"
     }
   ]
