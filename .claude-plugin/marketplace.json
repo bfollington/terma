@@ -11,21 +11,21 @@
       "name": "terma",
       "source": "./plugins/terma",
       "description": "Commands, agents, and skills for structured LLM-assisted development",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "CC-BY-SA-4.0"
     },
     {
       "name": "tsal",
       "source": "./plugins/tsal",
       "description": "Domain-specific skills for game engines, creative coding, and design patterns",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "CC-BY-SA-4.0"
     },
     {
       "name": "notes",
       "source": "./plugins/notes",
       "description": "Use sqlite for managing notes (instead of markdown files)",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "license": "CC-BY-SA-4.0"
     }
   ]

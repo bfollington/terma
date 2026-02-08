@@ -1,4 +1,9 @@
-Read and apply the guidance from @../lib/subagent.md
+---
+name: orient
+description: Explore and understand a project's structure and functionality. Use when starting work on a new or unfamiliar codebase.
+---
+
+Read and apply the guidance from @../../lib/subagent.md
 
 # Orient
 

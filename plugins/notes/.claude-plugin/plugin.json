@@ -1,6 +1,6 @@
 {
   "name": "notes",
   "description": "Use sqlite for managing notes (instead of markdown files)",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "license": "CC-BY-SA-4.0"
 }
