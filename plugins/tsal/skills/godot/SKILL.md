@@ -356,6 +356,74 @@ When implementing a known pattern (interaction system, state machine, etc.).
 
 5. **Test incrementally**
 
+## Unit Testing with GUT
+
+Use [GUT](https://gut.readthedocs.io/) (Godot Unit Testing) for testing pure logic — any `RefCounted` or `Resource` class that doesn't depend on the scene tree is a good candidate. Card systems, scoring, state machines, map generators, challenge logic, etc.
+
+### Installation
+
+1. Download from [GitHub releases](https://github.com/bitwes/gut/releases) (v9.5.0 works with Godot 4.5; v9.6.0+ requires newer Godot)
+2. Place `addons/gut/` in your project
+3. Enable plugin in Project Settings → Plugins
+4. Create `.gutconfig.json` at project root:
+```json
+{
+  "dirs": ["res://test/unit"],
+  "prefix": "test_",
+  "suffix": ".gd",
+  "log_level": 1
+}
+```
+
+### Writing Tests
+
+Tests live in `test/unit/`, files prefixed `test_`, extending `GutTest`:
+
+```gdscript
+extends GutTest
+
+func test_score_calculation() -> void:
+    var scoring := Scoring.new()
+    assert_eq(scoring.calculate(3, 0), 100, "Base score for 3 moves")
+    assert_gt(scoring.calculate(2, 0), scoring.calculate(3, 0), "Fewer moves = higher score")
+
+func test_deck_shuffle() -> void:
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 42
+    var deck := CardSystem.create_shuffled_deck(rng)
+    assert_eq(deck.size(), 52, "Full deck")
+```
+
+Key conventions:
+- Test methods must start with `test_`
+- Helper methods use `_` prefix (not discovered as tests)
+- Use `before_each()` / `after_each()` for setup/teardown
+- Key asserts: `assert_eq`, `assert_ne`, `assert_true`, `assert_false`, `assert_gt`, `assert_lt`, `assert_null`, `assert_not_null`
+
+### Running Tests
+
+```bash
+# Run all tests (returns exit code 0 on pass, 1 on fail)
+godot -d -s --path "$PWD" addons/gut/gut_cmdln.gd -gexit
+
+# Run a specific test file
+godot -d -s --path "$PWD" addons/gut/gut_cmdln.gd -gtest=res://test/unit/test_scoring.gd -gexit
+
+# Run tests matching a pattern
+godot -d -s --path "$PWD" addons/gut/gut_cmdln.gd -gdir=res://test/unit -gselect=weekly -gexit
+```
+
+### What to Test
+
+Prefer testing pure logic classes that extend `RefCounted` or `Resource`:
+- Game rules and scoring
+- Card/deck/hand management
+- Map generation (verify properties, not exact output)
+- State snapshot/restore
+- Upgrade/progression math
+
+Avoid testing scene-tree-dependent code in unit tests (rendering, UI, input handling).
+
 ## Common Pitfalls and Solutions
 
 ### Pitfall 1: Using GDScript Syntax in .tres Files
