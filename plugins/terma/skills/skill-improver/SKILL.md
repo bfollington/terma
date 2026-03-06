@@ -1,6 +1,6 @@
 ---
 name: skill-improver
-description: This skill should be used at natural checkpoints (after completing complex tasks, at session end, or when friction occurs) to reflect on skill and process execution and identify targeted improvements. Use when experiencing confusion, repeated failures, or discovering new patterns that should be codified into skills for smoother future operation.
+description: This skill guides structured reflection on skills and processes to identify targeted improvements, update skill files, create new skills from recurring patterns, and log friction points. Use when experiencing confusion, repeated failures, or discovering new patterns that should be codified; at natural checkpoints such as session end or after completing a complex task; or when the user asks "what went wrong", "how can we do this better", "retrospective", or "lessons learned".
 ---
 
 # Skill Improver
@@ -9,22 +9,14 @@ description: This skill should be used at natural checkpoints (after completing 
 
 This skill guides reflective improvement of skills and processes through structured analysis. Rather than automatically suggesting changes, it provides a framework for mindful reflection to identify high-impact improvements without creating bloat.
 
-The philosophy follows Buddhist "skillful means" (upaya) - developing concrete, practical wisdom through iteration. The goal is harmonious operation between Claude and the user by refining skills to be clearer, more complete, and more efficient.
+The goal is to refine skills to be clearer, more complete, and more efficient.
 
 ## When to Use This Skill
 
-**Use this skill:**
-- At the end of a session when significant work has been completed
 - After completing a complex task that involved multiple skills or tools
 - When experiencing repeated friction, confusion, or failures during execution
 - When discovering a workaround or novel pattern that should be captured
-- When the user expresses frustration with a process or skill
 - After successfully navigating a challenging workflow that could be easier next time
-
-**Do not use this skill:**
-- After every tiny task (reflection should be purposeful, not reflexive)
-- When there's nothing substantial to improve
-- During active work (finish first, then reflect)
 
 ## Reflection Workflow
 
@@ -38,7 +30,7 @@ Clearly establish what process or skill is being reflected upon:
 
 ### 2. Apply the Reflection Framework
 
-Use `references/reflection_framework.md` to systematically analyze the experience. The framework provides structured questions across five dimensions:
+Read `references/reflection_framework.md` and work through the questions across five dimensions:
 
 1. **Process Execution** - What happened? What worked? What didn't?
 2. **Skill Content Analysis** - Was the skill clear, complete, efficient, accurate?
@@ -46,65 +38,55 @@ Use `references/reflection_framework.md` to systematically analyze the experienc
 4. **Pattern Recognition** - Is this a one-time issue or recurring pattern?
 5. **Improvement Identification** - What specific changes would help?
 
-Load and review the framework:
-
-```
-Read references/reflection_framework.md and work through the relevant questions
-```
+Focus your extraction on these key questions:
+- Where did execution slow down, stall, or require backtracking? Note the specific step.
+- What information was missing that had to be discovered at runtime? Name the gap.
+- Was anything repeated that a script or template could have handled? Identify the repetition.
+- Would this problem recur, or was it a one-time environment issue? Classify accordingly.
 
 ### 3. Identify Improvement Patterns
 
-Consult `references/improvement_patterns.md` to recognize common issues:
-- Clarity issues (ambiguous descriptions, jargon, vague steps)
-- Completeness issues (missing prerequisites, edge cases, error handling)
-- Efficiency issues (redundant instructions, missing scripts, context bloat)
-- Usability issues (poor discoverability, overwhelming complexity)
-- Structural issues (wrong abstraction level, missing decision trees)
+Read `references/improvement_patterns.md` and match each observed issue to one or more of these categories:
 
-Load and cross-reference patterns:
+| Pattern | Signals |
+|---|---|
+| Clarity | Ambiguous descriptions, jargon, vague steps |
+| Completeness | Missing prerequisites, edge cases, error handling |
+| Efficiency | Redundant instructions, missing scripts, context bloat |
+| Usability | Poor discoverability, overwhelming complexity |
+| Structural | Wrong abstraction level, missing decision trees |
 
-```
-Read references/improvement_patterns.md to identify which patterns match the observed issues
-```
+Record which pattern(s) apply — this feeds directly into step 4.
 
 ### 4. Formulate Specific Improvements
 
-Based on reflection, create concrete, actionable improvement proposals. Each improvement should include:
+For each matched pattern, write a concrete improvement proposal:
 
 - **Skill/Process**: Name of what's being improved
 - **Issue Observed**: Concrete description of the problem
 - **Root Cause**: Why this happened (what's missing or wrong)
 - **Proposed Change**: Specific, actionable improvement
 - **Impact**: High/Medium/Low priority
-- **Implementation**: Exact files and changes needed
+- **Implementation**: Exact files and changes needed (e.g., `skills/pdf-editor/scripts/rotate_pdf.py`, add section "Error Handling" to `skills/pdf-editor/skill.md`)
 
 ### 5. Apply Improvement Principles
 
-Before finalizing recommendations, verify they follow skillful means:
-
-**Do:**
-- Be specific and concrete
-- Show evidence from actual experience
-- Consider cost/benefit ratio
-- Prefer simplification over addition
-- Document principles and "why", not just "what"
-
-**Don't:**
-- Pile on multiple vague changes
-- Over-engineer solutions
-- Duplicate existing information
-- Spam the user with minor tweaks
+Before finalizing recommendations, verify each proposed change:
+- Has a specific root cause grounded in observed experience
+- Simplifies rather than layers on complexity
+- Documents principles and "why", not just "what"
+- Passes a cost/benefit check — avoid changes that won't actually be used
 
 ### 6. Execute Improvements (if appropriate)
 
-For high-impact improvements:
-- If editing an existing skill, use the skill-creator skill to make changes
-- If creating a new skill is warranted, use the skill-creator skill
-- For process improvements, document the new approach
+For **high-impact improvements**:
+- Invoke the `skill-creator` skill to edit an existing skill or create a new one
+- Example invocation: *"Use skill-creator to add a `scripts/rotate_pdf.py` to the `pdf-editor` skill with permission error handling"*
+- For process improvements without a dedicated skill, document the new approach in the relevant `references/` file
 
-For lower-impact improvements:
-- Present findings to the user for future consideration
-- Ask if they'd like to implement changes now or later
+For **lower-impact improvements**:
+- Present findings to the user with the structured proposal from step 4
+- Ask: *"Would you like to implement these changes now, or log them for later?"*
 
 ## Decision Tree: Improve vs Create
 
@@ -130,8 +112,6 @@ Sometimes the best improvement is creating a new skill. Use this decision tree:
 
 ## Resources
 
-This skill includes reference documentation to guide the reflection process:
-
 ### references/reflection_framework.md
 
 Structured framework with questions across five dimensions:
@@ -141,7 +121,7 @@ Structured framework with questions across five dimensions:
 4. Pattern Recognition
 5. Improvement Identification
 
-Use this to systematically analyze what happened and identify specific improvement opportunities.
+**Extract**: For each dimension, note the specific friction point and its location in the workflow.
 
 ### references/improvement_patterns.md
 
@@ -152,7 +132,7 @@ Catalog of common skill issues and their solutions:
 - Usability issues (discoverability, complexity, inconsistent terminology)
 - Structural issues (abstraction level, decision trees, undocumented scripts)
 
-Use this to recognize patterns and find proven solutions.
+**Extract**: The matched pattern name and its recommended solution type (e.g., "add script", "split skill", "add troubleshooting section").
 
 ## Example Usage
 
@@ -161,51 +141,25 @@ Use this to recognize patterns and find proven solutions.
 **Scenario**: After using the `pdf-editor` skill to rotate several PDFs, Claude had to rewrite rotation code multiple times due to varying file permissions.
 
 **Reflection**:
-1. **Context**: Used pdf-editor skill to rotate PDFs, encountered permission issues
-2. **Framework application**: Process execution had friction - repetitive code writing, unexpected errors
-3. **Pattern recognition**: Matches "Missing scripts for repetitive tasks" and "Incomplete error handling"
-4. **Improvement formulation**:
-   - **Skill/Process**: pdf-editor
-   - **Issue**: Rewrote PyPDF2 rotation code 3 times; permission errors not handled
-   - **Root Cause**: No rotation script; permission handling undocumented
-   - **Proposed Change**: Create `scripts/rotate_pdf.py` with permission handling; add troubleshooting section
-   - **Impact**: High - eliminates code rewriting, prevents permission errors
-   - **Implementation**: Create script, update SKILL.md to reference it
-5. **Execution**: Use skill-creator to add script and update documentation
+- **Issue**: Rewrote PyPDF2 rotation code 3 times; permission errors not handled
+- **Pattern**: "Missing scripts for repetitive tasks" + "Incomplete error handling"
+- **Root Cause**: No rotation script; permission handling undocumented
+- **Proposed Change**: Create `skills/pdf-editor/scripts/rotate_pdf.py` with permission handling; add "Troubleshooting" section to `skills/pdf-editor/skill.md`
+- **Impact**: High — eliminates rewriting, prevents permission errors
+- **Execution**: *"Use skill-creator to add `scripts/rotate_pdf.py` to the `pdf-editor` skill. The script should accept a file path and rotation angle, handle `PermissionError` with a clear message, and use PyPDF2."*
 
 ### Example 2: Missing Reference Documentation
 
-**Scenario**: After creating a Lorn/Clams Casino inspired beat using the `strudel` skill, user feedback revealed bass tone missed the mark. User corrected: "don't need to encode every iteration" and "bass tone not reminding me of references."
+**Scenario**: After creating a Lorn/Clams Casino inspired beat using the `strudel` skill, user feedback revealed bass tone missed the mark and URL encoding was being done too frequently.
 
-**Reflection**:
-1. **Context**: Used strudel skill for dark ambient hip-hop, encountered two issues
-2. **Framework application**:
-   - Process execution: URL encoding was inefficient during iterations
-   - Skill content: No guidance for translating artist references into techniques
-3. **Pattern recognition**: Matches "Vague workflow steps" and "Missing reference documentation"
-4. **Improvement formulation**:
-   - **Skill/Process**: strudel
-   - **Issue #1**: Encoded URL after every iteration; user said only needed on initial creation
-   - **Root Cause**: Skill said "Always encode after modifications" - too broad
-   - **Proposed Change**: Clarify when to encode (initial only, skip iterations, final if requested)
-   - **Impact**: Medium - prevents unnecessary work
-   - **Implementation**: Update SKILL.md section "Providing Output to the User"
+**Issue #1**: Encoded URL after every iteration; user said only needed on initial creation
+- **Root Cause**: Skill said "Always encode after modifications" — too broad
+- **Proposed Change**: In `skills/strudel/skill.md`, replace "Always encode after modifications" with "Encode on initial creation and on final export only; skip during iterative editing"
+- **Impact**: Medium
 
-   - **Issue #2**: No systematic guide for artist characteristics (Lorn, Clams Casino)
-   - **Root Cause**: No reference for common genre/artist styles
-   - **Proposed Change**: Create `references/genre-styles.md` with artist characteristics and Strudel techniques
-   - **Impact**: High - translates user references into concrete implementation
-   - **Implementation**: Create reference file, update SKILL.md to reference it
-5. **Execution**: Used skill-creator to implement both improvements; user approved both
+**Issue #2**: No guide for translating artist references (Lorn, Clams Casino) into Strudel techniques
+- **Root Cause**: No reference for common genre/artist styles
+- **Proposed Change**: Create `skills/strudel/references/genre-styles.md` mapping artist characteristics to Strudel functions and patterns
+- **Impact**: High
 
-## Philosophy: Skillful Means
-
-The goal is harmonious operation through continuous refinement:
-
-- **Concrete over abstract**: Prefer working examples to theoretical descriptions
-- **Simplicity over completeness**: Handle 80% of cases well rather than 100% poorly
-- **Clarity over cleverness**: Straightforward instructions beat elegant complexity
-- **Practical over perfect**: Ship useful improvements, iterate continuously
-- **Harmonious over comprehensive**: Reduce friction, don't add features
-
-Each improvement should make Claude's and the user's life tangibly easier. If it doesn't pass this test, don't recommend it.
+**Execution**: *"Use skill-creator to (1) update the encoding instruction in the strudel skill and (2) create `references/genre-styles.md` with sections for Lorn and Clams Casino."* User approved both changes.

@@ -1,35 +1,15 @@
 ---
 name: sqlite-db
-description: General guide for using the sqlite3 CLI to build composable knowledge databases. Use this skill when creating SQLite databases, designing schemas, querying data, managing relationships, or building new sqlite-based domain skills. Provides the foundational patterns that all specialized sqlite skills build upon.
+description: General guide for using the sqlite3 CLI to build composable knowledge databases. Use this skill when creating SQLite databases, designing schemas with CREATE TABLE, defining foreign keys and indexes, running CLI queries, importing or exporting data (CSV/JSON), managing structural and graph relationships, or building new sqlite-based domain skills. Provides foundational patterns — for domain-specific workflows (e.g., a notes or task tracker schema), prefer a dedicated sqlite domain skill if one exists; use this skill for general-purpose sqlite operations and cross-domain patterns.
 ---
 
 # SQLite Database Skills
 
 **Composable knowledge databases via raw SQL.**
 
-SQLite databases are portable, self-contained, and require no server. The `sqlite3` CLI provides direct access to the full power of relational SQL: indexes, joins, aggregations, window functions, CTEs, full-text search, JSON functions, triggers, and views. This skill teaches agents how to use SQLite as a knowledge management substrate.
-
-## Philosophy
-
-### SQL is the Interface
-
-No wrapper, no abstraction layer. You compose SQL directly. This gives you the full power of SQLite: complex joins, window functions, CTEs, FTS5, JSON operations, triggers, and views. Verbosity costs tokens, not keystrokes — and the expressiveness pays dividends.
-
-### Schemas Are the DDL
-
-No YAML declarations. The `CREATE TABLE` statements *are* the schema. Run `.schema` to see everything. Column types, constraints, foreign keys, indexes — all visible in the DDL. Self-documenting by design.
-
-### Composable .db Files
-
-Each domain gets its own `.db` file. Your notes database, investment tracker, and issue tracker are separate files. Portable — copy, share, back up independently. No central server required.
-
-### Agent-Compatible
-
-The `sqlite3` CLI is deterministic and stateless per invocation. Output modes (`-header -column`, `.mode json`, `-line`) are parseable. Commands never rely on session state. Perfect for LLM-driven workflows.
+The `sqlite3` CLI provides direct access to the full power of relational SQL: indexes, joins, aggregations, window functions, CTEs, full-text search, JSON functions, triggers, and views. Each domain gets its own `.db` file. Always pass the database path explicitly — stateless, deterministic per invocation.
 
 ## Database Targeting
-
-**Always pass the database path as the first argument to `sqlite3`.** This ensures stateless, deterministic behavior.
 
 ```bash
 # Single-line command
@@ -46,42 +26,34 @@ SQL
 
 ## Output Modes
 
-Choose the output mode based on your needs:
-
-| Mode | Use Case | Invocation |
-|------|----------|------------|
-| **Column** | Human-readable tables | `sqlite3 -header -column mydata.db "SELECT ..."` |
-| **JSON** | Agent parsing with jq | `sqlite3 mydata.db "SELECT ..." \| jq` (after `.mode json`) |
-| **CSV** | Export to spreadsheets | `sqlite3 -csv -header mydata.db "SELECT ..."` |
-| **Line** | Single record inspection | `sqlite3 -line mydata.db "SELECT * FROM notes WHERE id = 'NOTE-...';"` |
-
-### JSON Mode Example
+Use **column mode** for human-readable output and **JSON mode** for scripting:
 
 ```bash
-# Enable JSON output and query
+# Human-readable (column mode)
+sqlite3 -header -column /path/to/mydata.db "SELECT id, title, status FROM notes LIMIT 10;"
+
+# JSON for scripting/piping to jq
 sqlite3 /path/to/mydata.db <<'SQL'
 .mode json
-SELECT id, title, tags FROM notes LIMIT 5;
+SELECT id, title, tags FROM notes WHERE status = 'active';
 SQL
-```
 
-Then pipe to `jq` for filtering or transformation:
-
-```bash
 sqlite3 /path/to/mydata.db "SELECT ..." | jq -r '.[] | select(.status == "active") | .id'
+
+# Single record inspection (-line mode)
+sqlite3 -line /path/to/mydata.db "SELECT * FROM notes WHERE id = 'NOTE-...';"
+
+# CSV export
+sqlite3 -csv -header /path/to/mydata.db "SELECT ..." > export.csv
 ```
 
 ## Core Operations
 
 ### Initialize a Database
 
-Create the database directory and initialize tables with constraints and pragmas:
-
 ```bash
-# Create directory
 mkdir -p /path/to/.sqlite
 
-# Initialize database with pragmas and schema
 sqlite3 /path/to/.sqlite/mydata.db <<'SQL'
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
@@ -117,17 +89,9 @@ Use inline SQL expressions to generate unique, time-ordered, human-readable IDs:
 - `'NOTE-' || strftime('%Y%m%d', 'now') || '-' || lower(hex(randomblob(4)))` → `NOTE-20260208-a3f8c291`
 - `'TASK-' || strftime('%Y%m%d', 'now') || '-' || lower(hex(randomblob(4)))` → `TASK-20260208-7b2e9f41`
 
-**Prefix conventions:**
-- Notes: `NOTE-`
-- Tasks: `TASK-`
-- Resources: `RES-`
-- Clippings: `CLIP-`
-- Breadcrumbs: `CRUMB-`
-- Reflections: `REFL-`
+**Prefix conventions:** `NOTE-`, `TASK-`, `RES-`, `CLIP-`, `CRUMB-`, `REFL-`
 
 ### Create Records
-
-Insert records with inline ID generation:
 
 ```bash
 sqlite3 /path/to/.sqlite/mydata.db <<'SQL'
@@ -147,7 +111,6 @@ SQL
 ### Query Records
 
 ```bash
-# Simple query with filtering and ordering
 sqlite3 -header -column /path/to/.sqlite/mydata.db <<'SQL'
 SELECT id, title, status, created_at
 FROM notes
@@ -157,7 +120,7 @@ LIMIT 10;
 SQL
 ```
 
-**Pagination example:**
+**Pagination:**
 
 ```sql
 SELECT id, title
@@ -177,12 +140,8 @@ SQL
 
 ### Show a Record
 
-Use `-line` mode for human-readable single-record display:
-
 ```bash
-sqlite3 -line /path/to/.sqlite/mydata.db <<'SQL'
-SELECT * FROM notes WHERE id = 'NOTE-20260208-a3f8c291';
-SQL
+sqlite3 -line /path/to/.sqlite/mydata.db "SELECT * FROM notes WHERE id = 'NOTE-20260208-a3f8c291';"
 ```
 
 Output:
@@ -198,6 +157,10 @@ updated_at = 2026-02-08 14:32:01
 
 ### Update Records
 
+**Workflow:**
+
+1. Run the UPDATE:
+
 ```bash
 sqlite3 /path/to/.sqlite/mydata.db <<'SQL'
 UPDATE notes
@@ -208,7 +171,21 @@ WHERE id = 'NOTE-20260208-a3f8c291';
 SQL
 ```
 
-**Batch update example:**
+2. Verify the change before proceeding:
+
+```bash
+sqlite3 -line /path/to/.sqlite/mydata.db "SELECT id, status, updated_at FROM notes WHERE id = 'NOTE-20260208-a3f8c291';"
+```
+
+**Batch update — always verify row counts:**
+
+1. Preview rows affected:
+
+```sql
+SELECT COUNT(*) FROM notes WHERE created_at < date('now', '-1 year');
+```
+
+2. Run the batch update:
 
 ```sql
 UPDATE notes
@@ -216,13 +193,35 @@ SET status = 'archived', updated_at = datetime('now')
 WHERE created_at < date('now', '-1 year');
 ```
 
+3. Confirm results:
+
+```sql
+SELECT status, COUNT(*) FROM notes GROUP BY status;
+```
+
 ### Delete Records
 
+**Workflow:**
+
+1. Preview what will be deleted:
+
 ```bash
-sqlite3 /path/to/.sqlite/mydata.db <<'SQL'
-DELETE FROM notes WHERE id = 'NOTE-20260208-a3f8c291';
-SQL
+sqlite3 /path/to/.sqlite/mydata.db "SELECT id, title FROM notes WHERE id = 'NOTE-20260208-a3f8c291';"
 ```
+
+2. Run the DELETE:
+
+```bash
+sqlite3 /path/to/.sqlite/mydata.db "DELETE FROM notes WHERE id = 'NOTE-20260208-a3f8c291';"
+```
+
+3. Verify deletion (must return 0):
+
+```bash
+sqlite3 /path/to/.sqlite/mydata.db "SELECT COUNT(*) FROM notes WHERE id = 'NOTE-20260208-a3f8c291';"
+```
+
+Only proceed with downstream operations once count confirms 0.
 
 ## Relationships
 
@@ -236,7 +235,7 @@ Use foreign key columns for parent-child ownership and 1:1 or N:1 relationships:
 CREATE TABLE clippings (
   id TEXT PRIMARY KEY,
   content TEXT NOT NULL,
-  resource_id TEXT,  -- Foreign key to resources table
+  resource_id TEXT,
   clipped_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (resource_id) REFERENCES resources(id) ON DELETE CASCADE
 );
@@ -327,40 +326,29 @@ WHERE source_id = 'NOTE-20260208-a3f8c291'
 
 ## Views as Saved Queries
 
-Views are more powerful than memhub's saved queries — they can use joins, aggregations, and reference other views.
-
-### Create a View
+Views support joins, aggregations, and can reference other views.
 
 ```sql
+-- Create
 CREATE VIEW active_notes AS
 SELECT id, title, status, created_at
 FROM notes
 WHERE status = 'active'
 ORDER BY created_at DESC;
-```
 
-### Query a View
-
-```sql
+-- Query
 SELECT * FROM active_notes LIMIT 10;
-```
 
-### List All Views
-
-```sql
+-- List all views
 SELECT name FROM sqlite_master WHERE type = 'view';
-```
 
-### Drop a View
-
-```sql
+-- Drop
 DROP VIEW IF EXISTS active_notes;
 ```
 
-### Complex View Example
+**Complex view example — note graph with link counts:**
 
 ```sql
--- Note graph view with link counts
 CREATE VIEW note_graph AS
 SELECT
   n.id,
@@ -376,8 +364,6 @@ GROUP BY n.id, n.title, n.status;
 
 ## Triggers for Automation
 
-Triggers automate repetitive tasks like timestamp updates and FTS synchronization.
-
 ### Auto-Update Timestamps
 
 ```sql
@@ -391,11 +377,9 @@ END;
 
 ### FTS Sync Triggers
 
-See "Full-Text Search" section below for complete examples.
+See "Full-Text Search" section below.
 
 ## Full-Text Search (FTS5)
-
-SQLite's FTS5 extension provides ranked full-text search. Memhub cannot do this.
 
 ### Create FTS Virtual Table
 
@@ -412,23 +396,18 @@ CREATE VIRTUAL TABLE notes_fts USING fts5(
 
 ### Sync Triggers
 
-Keep the FTS index synchronized with the base table:
-
 ```sql
--- Trigger: insert
 CREATE TRIGGER notes_fts_insert AFTER INSERT ON notes BEGIN
   INSERT INTO notes_fts(rowid, id, title, body, tags)
   VALUES (NEW.rowid, NEW.id, NEW.title, NEW.body, NEW.tags);
 END;
 
--- Trigger: update
 CREATE TRIGGER notes_fts_update AFTER UPDATE ON notes BEGIN
   UPDATE notes_fts
   SET title = NEW.title, body = NEW.body, tags = NEW.tags
   WHERE rowid = OLD.rowid;
 END;
 
--- Trigger: delete
 CREATE TRIGGER notes_fts_delete AFTER DELETE ON notes BEGIN
   DELETE FROM notes_fts WHERE rowid = OLD.rowid;
 END;
@@ -461,23 +440,17 @@ LIMIT 10;
 
 ## JSON Functions
 
-SQLite provides robust JSON support for array and object fields.
-
-### Creating JSON Arrays
+### Creating and Querying JSON Arrays
 
 ```sql
--- Inline array
+-- Store as JSON array
 INSERT INTO notes (id, title, tags)
 VALUES (
   'NOTE-' || strftime('%Y%m%d', 'now') || '-' || lower(hex(randomblob(4))),
   'Example Note',
   json_array('tag1', 'tag2', 'tag3')
 );
-```
 
-### Querying JSON Arrays
-
-```sql
 -- Check if array contains a value
 SELECT id, title
 FROM notes
@@ -486,21 +459,14 @@ WHERE EXISTS (
   WHERE json_each.value = 'systems'
 );
 
--- Count array elements
-SELECT id, title, json_array_length(tags) AS tag_count
-FROM notes
-WHERE json_array_length(tags) > 3;
-
 -- Extract unique tags across all notes
 SELECT DISTINCT json_each.value AS tag
 FROM notes, json_each(notes.tags)
 WHERE notes.status = 'active'
 ORDER BY tag;
 
--- Tag cloud (aggregation)
-SELECT
-  json_each.value AS tag,
-  COUNT(*) AS note_count
+-- Tag cloud
+SELECT json_each.value AS tag, COUNT(*) AS note_count
 FROM notes, json_each(notes.tags)
 GROUP BY json_each.value
 ORDER BY note_count DESC;
@@ -509,12 +475,12 @@ ORDER BY note_count DESC;
 ### Updating JSON Arrays
 
 ```sql
--- Add a tag (append to array)
+-- Add a tag
 UPDATE notes
 SET tags = json_insert(tags, '$[#]', 'new-tag')
 WHERE id = 'NOTE-20260208-a3f8c291';
 
--- Remove a tag (requires rebuilding array)
+-- Remove a tag
 UPDATE notes
 SET tags = (
   SELECT json_group_array(value)
@@ -539,32 +505,21 @@ CREATE TABLE notes (
 
 ## CHECK Constraints for Validation
 
-CHECK constraints replace YAML enum and pattern validation.
-
-### Enum-Style Constraints
-
 ```sql
+-- Enum-style
 CREATE TABLE notes (
   id TEXT PRIMARY KEY,
   status TEXT NOT NULL CHECK (status IN ('draft', 'active', 'archived')) DEFAULT 'draft',
   epistemic TEXT CHECK (epistemic IN ('hypothesis', 'tested', 'validated', 'outdated'))
 );
-```
 
-### Range Constraints
-
-```sql
+-- Range
 CREATE TABLE resources (
   id TEXT PRIMARY KEY,
   rating INTEGER CHECK (rating >= 1 AND rating <= 5)
 );
-```
 
-### Pattern Constraints (Regex)
-
-SQLite doesn't have native regex in CHECK constraints, but you can validate formats:
-
-```sql
+-- Pattern (SQLite has no native regex in CHECK)
 CREATE TABLE resources (
   id TEXT PRIMARY KEY,
   url TEXT CHECK (url LIKE 'http%')
@@ -575,21 +530,9 @@ For complex validation, use application-level checks before INSERT.
 
 ## Aggregations
 
-SQLite supports GROUP BY, COUNT, SUM, AVG, MIN, MAX, and more. Memhub cannot do this.
-
-### Basic Aggregations
-
 ```sql
 -- Notes per status
-SELECT status, COUNT(*) AS count
-FROM notes
-GROUP BY status;
-
--- Average rating per resource type
-SELECT resource_type, AVG(rating) AS avg_rating
-FROM resources
-WHERE rating IS NOT NULL
-GROUP BY resource_type;
+SELECT status, COUNT(*) AS count FROM notes GROUP BY status;
 
 -- Monthly note creation counts
 SELECT
@@ -598,16 +541,10 @@ SELECT
 FROM notes
 GROUP BY month
 ORDER BY month DESC;
-```
 
-### Advanced Aggregations
-
-```sql
--- Tag cloud with percentages
+-- Tag cloud with percentages (window function)
 WITH tag_counts AS (
-  SELECT
-    json_each.value AS tag,
-    COUNT(*) AS count
+  SELECT json_each.value AS tag, COUNT(*) AS count
   FROM notes, json_each(notes.tags)
   GROUP BY json_each.value
 )
@@ -622,13 +559,13 @@ LIMIT 20;
 
 ## Building a SQLite-DB Skill
 
-Specialized sqlite-db skills follow a consistent structure. They teach agents how to manage a specific domain using SQLite.
+Specialized sqlite-db skills follow a consistent structure:
 
 ### Directory Layout
 
 ```
 skills/sqlite-<domain>/
-├── SKILL.md                # Skill instructions (when to use, workflows, SQL examples)
+├── SKILL.md                # Instructions, workflows, SQL examples
 ├── assets/
 │   ├── schema.sql          # DDL: tables, indexes, FTS, triggers
 │   └── views.sql           # Reusable views
@@ -641,28 +578,20 @@ skills/sqlite-<domain>/
 
 ### What a SQLite Skill Should Define
 
-1. **Tables** — DDL for all domain entities with constraints, indexes, and foreign keys
-2. **Indexes** — B-tree indexes for common queries, FTS indexes for search
-3. **FTS** — Virtual tables and sync triggers for full-text search
-4. **Views** — Saved queries as first-class database objects
-5. **Triggers** — Auto-timestamps, FTS sync, validation
-6. **Links vocabulary** — Named relationship types (same as memhub: `linksTo`, `derivedFrom`, `partOf`, etc.)
-7. **Database path** — Where the `.db` file lives (e.g., `.sqlite/notes.db`)
-8. **ID prefixes** — Conventions for generating human-readable IDs
-9. **Workflows** — Step-by-step SQL examples for common tasks
+1. **Tables** — DDL with constraints, indexes, and foreign keys
+2. **Indexes** — B-tree indexes for common queries, FTS for search
+3. **Views** — Saved queries as first-class database objects
+4. **Triggers** — Auto-timestamps, FTS sync
+5. **Links vocabulary** — Named relationship types
+6. **Database path** — Where the `.db` file lives
+7. **ID prefixes** — Conventions for human-readable IDs
+8. **Workflows** — Step-by-step SQL examples for common tasks
 
 ### Design Principles
 
-**Schemas encode domain knowledge.** The DDL is the documentation. Use meaningful column names, CHECK constraints, foreign keys, and indexes. The schema should tell you what's important.
-
-**Target database explicitly.** Every `sqlite3` command should specify the full path to the database. Stateless invocation only.
-
-**Views are your menu.** Create views for common queries. Views compose — they can reference other views, use joins, and include aggregations. They're more powerful than memhub's saved queries.
-
-**Use both relationship styles.** Structural foreign keys for ownership (clipping→resource), flexible links table for ad-hoc graph relationships (note→note).
-
-**Include setup scripts.** Provide an idempotent `setup.sh` that creates the database, runs the DDL, and initializes views. Users should be able to initialize a working database with one command.
-
-**Show real workflows.** Don't just list SQL patterns — show the full flow of creating records, linking them, querying, updating, and analyzing over time.
-
-**Be honest about tradeoffs.** SQL is verbose. String escaping is hazardous. But the power (JOINs, FTS, aggregations, window functions) makes it worthwhile for certain domains.
+- **Schemas encode domain knowledge.** DDL is documentation. Use meaningful column names, CHECK constraints, foreign keys, and indexes.
+- **Target database explicitly.** Every `sqlite3` command specifies the full path. Stateless invocation only.
+- **Views are your menu.** Create views for common queries; they compose and can reference other views.
+- **Use both relationship styles.** Foreign keys for ownership, links table for ad-hoc graph relationships.
+- **Include setup scripts.** Provide an idempotent `setup.sh` that initializes a working database with one command.
+- **Always verify destructive operations.** Follow every DELETE and batch UPDATE with a confirming SELECT or COUNT before proceeding.
