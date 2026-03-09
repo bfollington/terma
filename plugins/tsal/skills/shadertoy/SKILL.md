@@ -1,23 +1,9 @@
 ---
 name: shadertoy
-description: This skill should be used when working with Shadertoy shaders, GLSL fragment shaders, or creating procedural graphics for the web. Use when writing .glsl files, implementing visual effects, creating generative art, or working with WebGL shader code. This skill provides GLSL ES syntax reference, common shader patterns, and Shadertoy-specific conventions.
+description: This skill should be used when working with Shadertoy shaders, GLSL fragment shaders, or creating procedural graphics for the web. Use when writing .glsl files, implementing visual effects, creating generative art, debugging uniforms, optimizing render passes, or working with WebGL shader code. This skill provides GLSL ES syntax reference, common shader patterns (ray marching, distance fields, noise, palettes), Shadertoy-specific built-in variables, multi-pass rendering setup, and debugging and performance optimization techniques.
 ---
 
 # Shadertoy Shader Development
-
-## Overview
-
-Shadertoy is a platform for creating and sharing GLSL fragment shaders that run in the browser using WebGL. This skill provides comprehensive guidance for writing shaders including GLSL ES syntax, common patterns, mathematical techniques, and best practices specific to real-time procedural graphics.
-
-## When to Use This Skill
-
-Activate this skill when:
-- Writing or editing `.glsl` shader files
-- Creating procedural graphics, generative art, or visual effects
-- Working with Shadertoy.com projects or WebGL fragment shaders
-- Implementing ray marching, distance fields, or procedural textures
-- Debugging shader code or optimizing shader performance
-- Need GLSL ES syntax reference or Shadertoy input variables
 
 ## Core Concepts
 
@@ -56,13 +42,11 @@ Always available in shaders:
 Standard patterns for normalizing coordinates:
 
 ```glsl
-// Aspect-corrected UV centered at origin (-1 to 1, aspect-preserved)
-vec2 uv = (fragCoord.xy - 0.5 * iResolution.xy) / min(iResolution.y, iResolution.x);
-
-// Alternative compact form:
+// Aspect-corrected UV centered at origin (-1 to 1, aspect-preserved) — most common for 3D/ray marching
 vec2 uv = (fragCoord * 2.0 - iResolution.xy) / min(iResolution.x, iResolution.y);
+// Variant using max(y, x) in denominator keeps full height instead of full width in frame
 
-// Simple normalized (0 to 1)
+// Simple normalized (0 to 1) — useful for texture sampling and 2D effects
 vec2 uv = fragCoord / iResolution.xy;
 ```
 
@@ -249,10 +233,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
 1. **Set up coordinate system** - Choose appropriate UV normalization
 2. **Define core effect** - Implement main visual algorithm
-3. **Add animation** - Use `iTime` for temporal variation
-4. **Apply color palette** - Use cosine palette or custom scheme
-5. **Add post-processing** - Vignette, dither, gamma correction
-6. **Optimize** - Reduce iterations, use early exits, minimize branches
+3. **Validate GLSL ES compliance** - Check against Critical GLSL ES Rules above; confirm no `f` suffixes, no `saturate()`, no unguarded `pow`/`sqrt`, no uninitialized variables
+4. **Add animation** - Use `iTime` for temporal variation
+5. **Apply color palette** - Use cosine palette or custom scheme
+6. **Add post-processing** - Vignette, dither, gamma correction
+7. **Verify output** - Visualize intermediate values (normals, UVs, distance fields) to confirm correctness before final polish
+8. **Optimize** - Reduce iterations, use early exits, minimize branches
 
 ### Common Tasks
 
@@ -307,15 +293,6 @@ fragColor = vec4(fract(uv), 0.0, 1.0);       // Show UV tiling
 4. **Minimize texture reads** - Cache repeated lookups
 5. **Avoid conditionals** - Use `mix()`, `step()`, `smoothstep()` instead of `if`
 6. **Reduce precision** - Use `mediump` or `lowp` where appropriate (mobile)
-
-## Naming Conventions
-
-Based on observed patterns in creative work:
-
-- **Poetic/evocative names** - "alien-water", "heavenly-wisp", "comprehension"
-- **Technical descriptors** - "complex-plot", "noise-circuits", "ray-marching-demo"
-- **Compound phrases** - "coming-apart-at-the-seams", "form-without-form"
-- **Lowercase with hyphens** - `my-shader-name.glsl`
 
 ## Attribution and Forking
 
@@ -387,21 +364,3 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     fragColor = vec4(col, 1.0);
 }
 ```
-
-## Common Shader Types in Collection
-
-1. **Mathematical Visualizations** - Complex number plots, function graphs
-2. **Ray Marched 3D** - Distance field rendering, folded geometries
-3. **Procedural Textures** - Noise-based patterns, organic effects
-4. **Multi-Pass Effects** - Temporal feedback, buffer composition
-5. **Particle Systems** - Point-based simulations
-6. **2D Patterns** - Geometric, kaleidoscopic, interference effects
-
-## Tips for Creative Coding
-
-- **Start simple** - Get basic structure working, then iterate
-- **Use time creatively** - `sin(iTime)`, `mod(iTime, period)`, `smoothstep()` transitions
-- **Layer effects** - Combine multiple techniques for richness
-- **Embrace accidents** - Bugs often lead to interesting visuals
-- **Study references** - Learn from existing shaders, understand techniques
-- **Optimize later** - Prioritize visual quality first, then performance

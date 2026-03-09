@@ -1,6 +1,6 @@
 ---
 name: domain-driven-design
-description: This skill should be used whenever domain modeling is taking place. It provides specialized guidance for type-driven and data-driven design based on Rich Hickey and Scott Wlaschin's principles. The skill helps contextualize current modeling within the existing domain model, identifies inconsistencies, builds ubiquitous language, and creates visualizations (Mermaid, Graphviz/DOT, ASCII diagrams) to communicate domain concepts clearly. Use this skill when designing types, modeling business domains, refactoring domain logic, or ensuring domain consistency across a codebase.
+description: Applies domain-driven design (DDD) principles to define entities, value objects, and aggregates; map bounded contexts; enforce ubiquitous language; and create visualizations (Mermaid, Graphviz/DOT, ASCII) to communicate domain structure. Draws on Rich Hickey's data-oriented design and Scott Wlaschin's type-driven design to make illegal states unrepresentable and model workflows as explicit data transformations. Use when working on DDD, domain-driven design, entity modeling, aggregate design, value objects, bounded contexts, or event modeling — including designing types, modeling business domains, refactoring domain logic, resolving naming inconsistencies, or ensuring domain consistency across a codebase.
 ---
 
 # Domain-Driven Design
@@ -13,85 +13,27 @@ This skill provides guidance for domain modeling based on Rich Hickey's data-ori
 
 ### Rich Hickey's Data-Oriented Design
 
-**Simplicity over Ease**
-- Favor simple constructs that can be understood independently
-- Avoid complecting (intertwining) unrelated concerns
-- Separate policy from mechanism, data from behavior
-
-**Data is King**
-- Model the domain using pure data structures, not objects with behavior
-- Prefer generic data structures (maps, sets, vectors) over custom classes when appropriate
-- Data should be self-describing and inspectable
-- Functions transform data; data does not execute behavior
-
-**Value of Values**
-- Use immutable values to represent facts
-- Values enable local reasoning and simple equality
-- Values can be freely shared without coordination
-- Consider: what are the immutable facts in this domain?
-
-**Decomplecting**
-- Identify what is truly essential to the domain vs. incidental complexity
-- Separate when-it-happens from what-happens
-- Separate mechanism from policy
-- Question: are these concerns actually separate, or have we tangled them?
+- **Separate concerns**: Decouple policy from mechanism, data from behavior, when-it-happens from what-happens
+- **Data as pure facts**: Model the domain using plain data structures; functions transform data, data does not execute behavior
+- **Immutable values**: Use values to represent facts — they enable local reasoning and can be freely shared
+- **Decomplect**: Identify what is truly essential vs. incidental; question whether tangled concerns are actually related
 
 ### Scott Wlaschin's Type-Driven Design
 
-**Make Illegal States Unrepresentable**
-- Use the type system to eliminate invalid states at compile time
-- Model optional values explicitly (Option/Maybe types)
-- Use sum types (discriminated unions) for states that are mutually exclusive
-- Avoid primitive obsession; create domain-specific types
-
-**Domain Modeling Made Functional**
-- Model workflows as data transformations: Input → Process → Output
-- Explicitly model business rules as functions
-- Separate validation from business logic
-- Think in terms of: What can happen? What are the valid transitions?
-
-**Railway-Oriented Programming**
-- Model success and failure paths explicitly (Result types)
-- Chain operations that can fail using bind/flatMap
-- Keep the happy path clear and linear
-- Handle errors at appropriate boundaries
-
-**Types as Documentation**
-- Type signatures should communicate intent
-- Use newtype wrappers for semantic clarity (UserId, EmailAddress, Timestamp)
-- Constrain inputs to valid ranges using types
-- Let the type system guide API design
+- **Make illegal states unrepresentable**: Use sum types for mutually exclusive states; avoid primitive obsession; model optionals explicitly
+- **Workflows as transformations**: Model business rules as functions — `Input → Process → Output`; separate validation from business logic
+- **Railway-oriented programming**: Model success/failure explicitly with Result types; chain fallible operations with bind/flatMap
+- **Types as documentation**: Use newtype wrappers for semantic clarity (`UserId`, `EmailAddress`); let the type system guide API design
 
 ## DDD Building Blocks
 
 ### Entities vs Value Objects
 
-**Entities** are defined by identity, not attributes:
-- Have a unique identifier (ID, account number, etc.)
-- Can change over time while maintaining identity
-- Two entities with same attributes but different IDs are distinct
-- Used when domain experts refer to things by name/ID
-
-**Value Objects** are defined entirely by attributes:
-- No unique identifier
-- Immutable
-- Two value objects with same attributes are interchangeable
-- Used when only the value matters, not identity
-
 **Decision Guide:**
-- Ask: Do domain experts refer to this by ID/name? → Entity
-- Ask: Can I replace it with an equivalent copy? → If yes: Value Object
+- Ask: Do domain experts refer to this by ID/name, or does it change over time while maintaining identity? → **Entity**
+- Ask: Can I replace it with an equivalent copy? Does only the value matter, not who it is? → **Value Object** (immutable, no unique identifier)
 
 ### Aggregates and Aggregate Roots
-
-**Aggregate**: A cluster of entities and value objects treated as a single unit for data changes.
-
-**Aggregate Root**: The single entity through which all external access to the aggregate must pass.
-
-**Purpose:**
-- Define transactional consistency boundaries
-- Enforce invariants that span multiple objects
-- Simplify the model by grouping related concepts
 
 **Rules:**
 - External references go only to the aggregate root (use ID references)
@@ -106,54 +48,27 @@ This skill provides guidance for domain modeling based on Rich Hickey's data-ori
 
 ### Bounded Contexts
 
-**Definition**: An explicit boundary within which a domain model applies.
-
-**Purpose:**
-- Divide large domains into manageable pieces
-- Allow same term to have different meanings in different contexts
-- Prevent model corruption from mixing incompatible concepts
-
-**Key Insight**: Ubiquitous language is only ubiquitous within a context. "Customer" in Sales context may be different from "Customer" in Shipping context.
-
 **When modeling:**
-- Identify which bounded context you're in
+- Identify which bounded context you're in — ubiquitous language is only ubiquitous *within* a context ("Customer" in Sales may differ from "Customer" in Shipping)
 - Make context boundaries explicit in code structure (separate modules/namespaces)
 - Use anti-corruption layers when integrating across contexts
 - Document relationships between contexts (context map)
 
 ### Domain Events
 
-**Definition**: Something important that happened in the domain.
-
-**Characteristics:**
 - Named in past tense (OrderPlaced, PaymentProcessed, UserRegistered)
-- Immutable facts
-- Domain experts care about them
-- Can trigger reactions within or across bounded contexts
-
-**Uses:**
-- Decouple domain logic
-- Enable eventual consistency between aggregates
-- Integration between bounded contexts
-- Event sourcing (store events as source of truth)
+- Immutable facts that domain experts care about
+- Decouple domain logic, enable eventual consistency between aggregates, integrate bounded contexts, support event sourcing
 
 ### Repositories
 
-**Purpose**: Provide illusion of an in-memory collection of aggregates, abstracting persistence.
-
-**Characteristics:**
 - Operate at aggregate boundaries (load/save whole aggregates)
-- Provide lookup by ID
-- Hide database implementation details
+- Provide lookup by ID; hide database implementation details
 - Return domain entities, not database rows
-
-**Pattern**: Application layer uses repository to get/save aggregates; domain layer remains pure.
 
 ## Domain Modeling Workflow
 
 ### 1. Discover the Ubiquitous Language
-
-Start by identifying the domain concepts, using terminology from domain experts:
 
 **Action Items:**
 - List nouns (entities, value objects) and verbs (operations, events) from the domain
@@ -162,7 +77,6 @@ Start by identifying the domain concepts, using terminology from domain experts:
 - Ask: What does the business call this? What are the boundaries of this concept?
 
 **Output Format:**
-Create a glossary section documenting each term:
 ```markdown
 **Term** (Type: Entity/ValueObject/Event/Command)
 - Definition: [Clear, domain-expert-approved definition]
@@ -171,8 +85,6 @@ Create a glossary section documenting each term:
 ```
 
 ### 2. Analyze the Existing Domain Model
-
-Before making changes, understand the current state:
 
 **Exploration Steps:**
 - Identify where domain concepts are currently modeled (types, schemas, tables)
@@ -188,8 +100,6 @@ Before making changes, understand the current state:
 - Are there phantom types or states that shouldn't exist?
 
 ### 3. Identify Inconsistencies and Smells
-
-Common problems to surface:
 
 **Naming Inconsistencies**
 - Same concept with different names (User vs Account vs Customer)
@@ -214,15 +124,6 @@ Common problems to surface:
 
 ### 4. Design the Domain Model
 
-Apply type-driven and data-driven principles:
-
-**Data Modeling:**
-- Start with the data shape; what are the facts?
-- Use immutable values for facts that don't change
-- Model state transitions explicitly
-- Separate identity from attributes
-- Consider: what varies together? What varies independently?
-
 **Type Design:**
 - Create sum types for mutually exclusive states:
   ```
@@ -237,7 +138,13 @@ Apply type-driven and data-driven principles:
   type EmailAddress = EmailAddress of string  // with validation
   type Money = { amount: Decimal, currency: Currency }
   ```
-- Make impossible states unrepresentable
+
+**Data Modeling:**
+- Start with the data shape; what are the facts?
+- Use immutable values for facts that don't change
+- Model state transitions explicitly
+- Separate identity from attributes
+- Consider: what varies together? What varies independently?
 
 **Workflow Modeling:**
 - Model each business workflow as a clear pipeline:
@@ -262,15 +169,7 @@ Apply type-driven and data-driven principles:
 - Module boundaries should follow domain boundaries
 - Comments should explain domain rules, not implementation details
 
-**Documentation:**
-- Keep the glossary up to date
-- Document why decisions were made (especially constraints and invariants)
-- Link code to domain documentation
-- Make implicit domain rules explicit
-
 ### 6. Visualize the Domain Model
-
-Use diagrams to communicate domain structure and relationships:
 
 **Mermaid for Relationships:**
 ```mermaid
@@ -352,35 +251,14 @@ Customer
 
 ## Domain Modeling Anti-Patterns
 
-**Anemic Domain Model**
-- Symptom: Data structures with getters/setters, all logic in separate services
-- Problem: Violates data-orientation by adding ceremony without encapsulation benefits
-- Solution: Keep data as data; put related transformations in same module but separate from data definition
-
-**Entity Services Anti-Pattern**
-- Symptom: Classes like `UserService`, `OrderManager`, `ProductFactory`
-- Problem: Hides actual operations; lacks ubiquitous language
-- Solution: Name functions after domain operations: `approveOrder`, `cancelSubscription`, `calculateDiscount`
-
-**Primitive Obsession**
-- Symptom: String for email, number for money, boolean flags for states
-- Problem: No type safety; invalid values representable
-- Solution: Create semantic types with validation
-
-**Accidental Complexity**
-- Symptom: Complex abstractions, design patterns without clear domain benefit
-- Problem: Adds layers that obscure domain meaning
-- Solution: Simplify; prefer composition over inheritance; avoid premature abstraction
-
-**Hidden Temporal Coupling**
-- Symptom: Must call methods in specific order or system breaks
-- Problem: Complects workflow with state management
-- Solution: Make workflow explicit; use types to enforce valid transitions
-
-**Boolean Blindness**
-- Symptom: Boolean flags to represent states (isApproved, isActive, isDeleted)
-- Problem: Multiple booleans can represent impossible states
-- Solution: Use sum types for mutually exclusive states
+| Anti-Pattern | Symptom | Solution |
+|---|---|---|
+| **Anemic Domain Model** | Data structures with getters/setters; all logic in separate services | Keep data as data; put related transformations in the same module but separate from data definition |
+| **Entity Services** | Classes like `UserService`, `OrderManager`, `ProductFactory` | Name functions after domain operations: `approveOrder`, `cancelSubscription`, `calculateDiscount` |
+| **Primitive Obsession** | String for email, number for money, boolean flags for states | Create semantic types with validation |
+| **Accidental Complexity** | Complex abstractions or design patterns without clear domain benefit | Simplify; prefer composition over inheritance; avoid premature abstraction |
+| **Hidden Temporal Coupling** | Must call methods in specific order or system breaks | Make workflow explicit; use types to enforce valid transitions |
+| **Boolean Blindness** | Multiple boolean flags to represent states (`isApproved`, `isActive`, `isDeleted`) | Use sum types for mutually exclusive states |
 
 ## Contextualizing Within Existing Models
 
@@ -402,8 +280,6 @@ When adding to or changing an existing domain model:
 - Can we make this change incrementally?
 
 ## Checklist for Domain Modeling
-
-Before completing domain modeling work:
 
 **Language & Communication:**
 - [ ] All domain concepts are named using ubiquitous language

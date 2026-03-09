@@ -1,3 +1,8 @@
+---
+name: code-plugins-quick-reference
+description: Comprehensive quick reference for Claude Code plugins. Use when creating, installing, configuring, or troubleshooting Claude Code plugins; managing plugin marketplaces; setting up plugin manifests, skills, commands, hooks, LSP, or MCP integrations; converting standalone commands to plugins; or configuring team and scoped plugin installations.
+---
+
 # Claude Code Plugins Quick Reference
 
 Full docs:
@@ -87,6 +92,8 @@ claude plugin install plugin-name@marketplace-name --scope local
 # Uninstall
 /plugin uninstall plugin-name@marketplace-name
 ```
+
+**Verify installation**: Run `/plugin-name:command-name` to confirm the plugin loaded correctly, or open `/plugin` > Installed to check status.
 
 ### Interactive UI
 
@@ -240,4 +247,5 @@ Add to `.claude/settings.json` for automatic marketplace prompts:
 2. Copy `.claude/commands` to `my-plugin/commands/`
 3. Copy `.claude/skills` to `my-plugin/skills/`
 4. Move hooks from `settings.json` to `my-plugin/hooks/hooks.json`
-5. Test: `claude --plugin-dir ./my-plugin`
+5. **Validate**: Test with `claude --plugin-dir ./my-plugin` and confirm commands appear in `/help` (listed as `/my-plugin:command-name`)
+6. If validation passes, install or distribute the plugin; if commands are missing, check the `/plugin` Errors tab for loading issues
