@@ -675,6 +675,33 @@ godot --path . --check-only --script path/to/script.gd
 godot --path . --headless --quit --script path/to/test_script.gd
 ```
 
+### Two headless traps that look like real bugs
+
+**A brand-new `class_name` fails `--check-only` until the project is reimported.** The headless
+check resolves global classes from the project's cached class list, which does not yet contain a
+script you just created. The symptom is a confident, wrong parse error:
+
+```
+Parse Error: Identifier "MyNewClass" not declared in the current scope
+```
+
+Fix it once, then re-check:
+
+```bash
+godot --path . --import --headless --quit
+```
+
+This bites hardest in codebases full of `static func` utility classes, where the new type is
+referenced from several files at once and the error looks like a genuine missing dependency.
+
+**Headless Godot inside a sandboxed agent shell crashes or hangs.** If the process cannot write
+`user://logs/...` it either dies with `handle_crash: Program crashed with signal 11` or hangs on
+an XPC `Connection Invalid` — which a test runner with a timeout turns into empty output and a
+non-zero exit. Both present as a real defect in the code under test and get debugged as one; it
+is only filesystem denial. Run Godot with the sandbox disabled from the *first* invocation
+rather than after a confusing backtrace, and tell subagents the same thing up front — they hit
+it independently and each lose the same half hour.
+
 ### Editor Operations from CLI
 
 **Import resources without opening editor:**

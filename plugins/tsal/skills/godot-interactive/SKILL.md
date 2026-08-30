@@ -1,865 +1,400 @@
 ---
 name: godot-interactive
-description: "Interact with a running Godot game via MCP — launch, screenshot, click, inspect scene tree, get/set properties. Powered by godot-mcp + GodotMCPBridge autoload."
+description: "Interact with a running Godot game via MCP — launch, screenshot, click, inspect scene tree, get/set properties, call methods, run dev-console commands. Powered by godot-mcp + the GodotMCPBridge autoload (protocol v4.0)."
 ---
 
-# Godot Interactive Testing Skill
+# Godot Interactive (MCP)
 
-Playwright-like interaction loop for Godot games via MCP. Launch, observe, click, inspect, and manipulate a running game through a bridge autoload.
+Drive a running Godot game from an agent: launch it, look at it, click it, inspect the scene
+tree, read and write node properties, call methods, and run dev-console commands — an
+observe → interact → observe loop that replaces manual playtesting for anything verifiable.
 
-## Overview
+## The two halves
 
-This skill enables LLM-driven interactive testing of Godot games through the godot-mcp MCP server and a GodotMCPBridge autoload. You can:
+1. **godot-mcp** — a Node MCP server. Spawns/kills the Godot process, captures its stdout, and
+   wraps a file protocol into `game_*` tools.
+2. **GodotMCPBridge** — a GDScript autoload running *inside* the game. Polls a command file
+   every frame, executes commands on the live tree, writes responses and screenshots.
 
-- Launch and stop Godot projects via MCP
-- Capture viewport screenshots automatically or on-demand
-- Inspect the scene tree with Control node positions and text
-- Simulate clicks, key presses, and input actions
-- Read and write node properties at runtime
-- Implement iterative test/debug loops (observe → inspect → interact → observe)
+Everything interactive goes through the bridge. If the bridge isn't loaded or isn't being
+found, every `game_*` tool times out while `run_project` still reports success.
 
-This is particularly useful for:
-- Automated UI testing
-- Debugging visual issues
-- Verifying game state without manual playtesting
-- Creating reproducible test scenarios
-- Validating UI layouts and interactions
+**Limitation:** the MCP spawns its own Godot process. It cannot attach to a game you launched
+with F5 from the editor.
 
-## Prerequisites
+---
 
-**godot-mcp server:**
-- Installed at `~/code/godot-mcp` (or configurable path)
-- Built with `npm install && npm run build`
-- Repository: https://github.com/yourusername/godot-mcp
+## Protocol v4.0: where the files live
 
-**Claude Desktop configuration:**
-- MCP server configured in `~/.claude/mcp.json` (see Setup)
+Every bridge file lives in a **per-project directory**:
 
-**Godot project setup:**
-- GodotMCPBridge autoload installed
-- Remote debugger enabled (automatic when running via `run_project`)
+```
+dir  = $GODOT_MCP_DIR, else /tmp/godot-mcp/<slug>
+slug = <project-dir-name>-<first 8 hex of sha1(absolute project path)>
 
-## Setup for New Projects
+<dir>/command.json     written by the client, consumed + deleted by the bridge
+<dir>/response.json    written by the bridge, read by the client
+<dir>/screenshot.png   written by the bridge
+<dir>/instance.json    written on ready — {project, slug, pid, bridge_version}
+```
 
-### 1. Copy the Bridge Autoload
+**Before v4.0 these were fixed `/tmp/godot_*` paths.** Two Godot projects running at once
+silently ate each other's commands and clobbered each other's screenshots — results came back
+from the wrong game with no error at all. If you find `/tmp/godot_screenshot.png` or
+`/tmp/godot_mcp_command.json` referenced anywhere, that documentation or that bridge copy is
+pre-v4.0 and wrong.
 
-Copy the bridge script into your project:
+The slug formula is a **cross-language contract** — the GDScript bridge, the TypeScript server,
+and any shell/python helpers must derive it identically. Change it in one place and the tooling
+stops finding the game.
+
+Clients discover live games by globbing `/tmp/godot-mcp/*/instance.json`; a crash leaves the
+manifest behind, so treat it as a hint and confirm the `pid` is alive.
+
+**Two instances of the *same* project still share a directory** and will race. Launch the
+secondary with `GODOT_MCP_DISABLE_BRIDGE=1` (the bundled template's env var — rename it to your
+project's prefix if you prefer) so only the primary answers. Before driving a game, check
+whether the user already has one running (`pgrep -fl "Godot.*<project>"`) — if they do, your
+commands land in their session and theirs land in yours.
+
+---
+
+## Four things that silently lie to you
+
+These are the expensive failures. All four look like a bug in whatever you just changed.
+
+### 1. The screenshot on disk can be stale
+
+`game_screenshot` **reads the PNG off disk** — it does not force a capture. Fresh frames come
+from exactly two places:
+
+- an explicit `{"action":"screenshot"}` over the file protocol (`request_screenshot()`), which
+  always captures regardless of settings; or
+- the automatic post-command capture after `game_click` / `game_key` / `game_console` /
+  `game_set_property` — **which only happens when `screenshots_enabled` is true.**
+
+`screenshots_enabled` defaults to **false** (the readback costs ~29ms of GPU stall), so on a
+fresh launch every screenshot returned alongside a command is whatever was last written.
+**Enable it once per session:**
+
+```
+game_set_property(node_path: "/root/GodotMCPBridge", property: "screenshots_enabled", value: true)
+```
+
+There is also **no periodic screenshot timer** (the old every-2s save was a recurring 15–40ms
+main-thread stall). Nothing refreshes the PNG on its own.
+
+### 2. An occluded window renders nothing
+
+Godot stops drawing when its window is fully occluded. `viewport.get_texture().get_image()`
+then returns null, the bridge keeps serving **the last frame it drew**, and everything else
+keeps working perfectly — commands succeed, `game_scene_tree` reports live and correct state,
+and every screenshot shows a world from before your change.
+
+**The tell:** two screenshots across a change that should be visible come back byte-identical.
+
 ```bash
-cp assets/templates/godot_mcp_bridge.gd res://scripts/autoload/godot_mcp_bridge.gd
+md5 -q /tmp/godot-mcp/<slug>/screenshot.png    # same hash twice = nothing is rendering
 ```
 
-### 2. Register the Autoload
+**Do not "fix" this with `open -a Godot`** (macOS) — that raises the Godot *editor*, a separate
+process that will occlude the game and cause the exact problem you are trying to solve. Raise
+the game by PID:
 
-Add to `project.godot`:
-```ini
-[autoload]
-
-GodotMCPBridge="*res://scripts/autoload/godot_mcp_bridge.gd"
-```
-
-Or via Godot editor:
-- Project → Project Settings → Autoload
-- Path: `res://scripts/autoload/godot_mcp_bridge.gd`
-- Name: `GodotMCPBridge`
-- Enable: Yes
-
-### 3. Create MCP Configuration
-
-Create `.mcp.json` at project root (use template):
 ```bash
-cp assets/templates/mcp.json.template .mcp.json
+PID=$(ps ax -o pid,command | grep "[G]odot -d --path $PWD" | awk '{print $1}' | head -1)
+osascript -e "tell application \"System Events\" to set frontmost of (first process whose unix id is $PID) to true"
 ```
 
-Edit paths:
-```json
-{
-  "mcpServers": {
-    "godot": {
-      "command": "node",
-      "args": ["<PATH_TO_GODOT_MCP>/build/index.js"],
-      "env": {
-        "GODOT_PATH": "<PATH_TO_GODOT_BINARY>"
-      }
-    }
-  }
-}
+If you are in a session where you cannot make the game window visibly frontmost, screenshots
+are simply unavailable — stop retrying. `game_scene_tree`, `game_get_property`,
+`game_call_method`, `game_console` and `get_debug_output` all work regardless. Verify state by
+reading properties, and hand the visual call to the user with an exact repro.
+
+### 3. Async transitions return a mid-transition frame
+
+Any command that kicks off a fade / rebuild / scene swap finishes long after the bridge's
+default 0.2s post-command capture. Pass **`settle`** (seconds) so a single call waits for the
+settled frame instead of screenshotting mid-fade and screenshotting again:
+
+```
+game_console(command: "switch_biome ice", settle: 2.5)
+game_set_property(node_path: "...", property: "...", value: ..., settle: 1.0)
 ```
 
-**Example paths:**
-- macOS: `/Applications/Godot 4.5.app/Contents/MacOS/Godot`
-- Linux: `/usr/bin/godot` or `~/godot/bin/godot`
-- Windows: `C:/Godot/godot.exe`
+Note which tools actually return an image: `game_click`, `game_key`, `game_action`,
+`game_console` and `game_type_text` do; **`game_set_property` returns JSON only.** Its `settle`
+delays the screenshot the bridge writes to *disk*, so it pays off on the next read of that file,
+not in the response you get back.
 
-**Project-local godot-mcp:**
-If you keep godot-mcp in your project (e.g., `.tools/godot-mcp`):
-```json
-"args": [".tools/godot-mcp/build/index.js"]
+### 4. A restart leaves the previous instance's last frame on disk
+
+Right after relaunching, the PNG attached to a click/key response is the **old** process's
+final frame. It looks convincing and it is a different game. After a restart, force a capture
+before believing any image.
+
+---
+
+## Tool reference
+
+### Process control
+
+| Tool | What it does | Key params |
+|---|---|---|
+| `run_project` | Spawn Godot in debug mode, capture stdout/stderr | `projectPath`, `scene` |
+| `get_debug_output` | Accumulated stdout + stderr | — |
+| `stop_project` | Kill the Godot process | — |
+
+`run_project` takes 2–3s to become drivable. Confirm with `get_debug_output()` and look for
+`Godot MCP Bridge initialized` before sending `game_*` commands.
+
+**Prefer `pkill` over `stop_project` to stop it.** `stop_project` can dump the entire
+accumulated stdout into your context. `pkill -f "<godot binary path>"` is clean. A running
+game is the CPU-heavy part of any session — stop it before large subagent fan-outs, and
+whenever the user needs the machine back.
+
+### Game interaction (via the bridge)
+
+| Tool | What it does | Key params |
+|---|---|---|
+| `game_screenshot` | Return the PNG currently on disk (see lie #1) | — |
+| `game_scene_tree` | Scene tree as JSON; Control nodes carry `rect`, `visible`, `text` | `path` (`/root`), `depth` (3) |
+| `game_click` | Synthetic press+release at canvas coordinates | `x`, `y`, `button` (1=L, 2=R, 3=M) |
+| `game_key` | Key press by Godot key name (`Space`, `Escape`, `Return`, `A`) | `key` |
+| `game_action` | Trigger an InputMap action — no key binding needed | `name` |
+| `game_get_property` | Read a node property | `node_path`, `property` |
+| `game_set_property` | Write a node property | `node_path`, `property`, `value`, `settle` |
+| `game_call_method` | Call a method, return its result | `node_path`, `method`, `args` |
+| `game_console` | Run a dev-console command (LimboConsole) | `command`, `settle` |
+| `game_type_text` | Type into the focused text field, optionally submit | `text`, `submit` |
+
+Notes that matter:
+
+- **Vectors cross the wire as dicts.** `{"x":1,"y":-4}` → `Vector2i` when all-int, else
+  `Vector2`; add `"z"` for `Vector3i`/`Vector3`. A dict that isn't x/y(/z)-shaped passes through
+  raw. The same shape comes back from `game_get_property`; `Color` returns `{r,g,b,a}`.
+- **Stringified values are coerced** on `set_property`, so `"true"` and `true` both work.
+- `game_key` uses `OS.find_keycode_from_string()` — uppercase `"A"`, not `"a"`.
+- **`game_type_text` is unreliable for anything that matters.** Injected key events depend on
+  focus. If the target is a dev console, use `game_console` instead — it bypasses focus and
+  unicode entirely.
+- **The bridge acts on *nodes*.** A `ShaderMaterial` is not a node, so you cannot poke shader
+  uniforms live. Tuning a shader means an edit-and-restart cycle unless the project exposes an
+  in-game tuning panel. This is the one thing that reliably breaks the fast loop.
+- **`game_call_method` must be awaited inside the bridge.** `callv` on a method containing
+  `await` raises "Trying to call an async function without await" as a *debugger break*, which
+  hard-freezes the game and takes the bridge with it — every later command times out and the
+  only cure is a relaunch. The bundled template awaits `callv`, which handles both cases; if
+  you port an older bridge, this is the fix.
+- A `success: true` response only means the bridge dispatched the call. If the call itself
+  errored, that shows up in the game's stderr — check `get_debug_output()`, not the return.
+
+### Offline / headless tools
+
+| Tool | What it does |
+|---|---|
+| `create_scene`, `add_node`, `load_sprite`, `save_scene` | Edit `.tscn` files without the editor |
+| `launch_editor`, `get_godot_version`, `list_projects`, `get_project_info` | Project info |
+
+**Never open the editor while using the interactive loop** (it occludes the game — see lie #2),
+and never kill an editor the user has open; they may have unsaved scene work.
+
+---
+
+## Coordinates
+
+The bridge saves the PNG at **canvas size** — `viewport.get_visible_rect().size`, not the
+render-texture size — specifically so that **a pixel read off the screenshot is a valid click
+coordinate**. The mapping is the identity.
+
+This was not always true. Three spaces used to be in play (render texture at
+`root_size × content_scale_factor`, the canvas that Controls and injected input live in, and
+whatever the reader scaled the image to), and anyone picking a coordinate off the image was
+silently off by the content-scale factor — which read as "clicking Controls doesn't work".
+If a bridge you are porting doesn't resize to canvas size, that bug is still present.
+
+Even so, **prefer not to hand-derive coordinates.** In order of preference:
+
+1. A dev-console command that presses the button by name or id (see below).
+2. `game_scene_tree` → the target's `rect` → click its centre.
+3. Reading pixels off the screenshot.
+
+`game_click` goes through `Input.parse_input_event()`, so it respects Godot's input handling:
+if a Control absorbs the event, nothing deeper sees it. "The click did nothing" is usually
+occlusion or a modal eating input, not a bad coordinate.
+
+---
+
+## Give the project a dev console — the biggest win available
+
+The single highest-leverage thing you can add to a Godot project for agent-driven testing is a
+dev console ([LimboConsole](https://github.com/limbonaut/limbo_console) is what the bridge
+targets) with commands that *navigate and stage* the game: start a run, jump to level N, grant
+an item, switch environment, open a specific screen, set a seed. With those in place you drive
+the whole game through `game_console` and never guess a pixel coordinate or click through a
+menu again.
+
+Console commands worth writing for your project:
+
+| Purpose | Shape | Why it pays off |
+|---|---|---|
+| Boot straight into gameplay | `start_run`, `restart_run` | Skips menus entirely |
+| Jump to state | `skip_to_level <n>`, `set_seed <n>` | Reproducible scenarios |
+| Grant / force | `give_item <id>`, `add_currency <n>` | Tests states you'd otherwise grind to |
+| **List buttons** | `ui_buttons [filter]` | See below — this one is worth its weight |
+| **Press buttons** | `ui_press <id>` / `ui_click <id>` | Staging vs. real-input testing |
+| Reset layering | `reset_ui_layers` | Screens stack and become unusable |
+| Live tuning | `tune_<system>` | Feel/look changes without an edit-restart cycle |
+
+**`ui_buttons` is the answer to "why did my click do nothing".** Have it print, for every
+visible button: `[id] <node path> "<label>" @x,y WxH` plus `DISABLED`, `MOUSE_IGNORE`,
+`focused`, and — critically — `BLOCKED BY <node>` when something is drawn over the button's
+centre. Then:
+
+| | `ui_press <id>` | `ui_click <id>` |
+|---|---|---|
+| Path | emits `pressed()` directly | full synthetic mouse event |
+| Use for | **staging** — just make it happen | **testing** that a real click works |
+| Occluded button | fires anyway | refuses, and names the blocker |
+
+For staging, reach for `ui_press`: it cannot be defeated by focus, occlusion, or a modal eating
+input. Use `ui_click` only when the question is genuinely "would a player's click land here?".
+
+Generalising: **before writing a coordinate click or a `game_call_method` into a private
+method, check whether a console command already does it.**
+
+### Two console traps
+
+**Console commands do not return their output.** `game_console` executes the command and
+returns a screenshot; the command's own `print`s go to the in-game console log. So any command
+whose entire purpose is to tell you something is a **silent no-op from your side** unless you
+read that log — and you will wrongly conclude the command "did nothing". To read it: open the
+console (its log fills the screen), force a screenshot, read the PNG, close it again.
+
+**An open console usually pauses the tree.** LimboConsole sets `get_tree().paused = true`.
+Two consequences:
+
+- The bridge autoload must be `process_mode = PROCESS_MODE_ALWAYS` or it freezes with the game
+  and stops answering commands entirely.
+- **A paused tree ticks no process frames**, so any console command that `await`s frames can
+  never complete while the console is open. Such commands must close the console themselves.
+
+---
+
+## The loop
+
+```
+1. run_project(projectPath: "/abs/path")        # wait ~3s; foreground the game window
+2. get_debug_output()                           # confirm "Godot MCP Bridge initialized"
+3. game_set_property(/root/GodotMCPBridge, screenshots_enabled, true)
+4. game_console(command: "start_run", settle: 3)
+5. <force a capture> → read the PNG directly (the Read tool renders PNGs — no MCP round-trip)
+6. game_get_property(...)                       # verify state, not just pixels
+7. get_debug_output()                           # errors and prints
+8. pkill -f "<godot binary>"                    # free the CPU
 ```
 
-## MCP Tools Reference
-
-All tools are provided by the godot-mcp server and work through the GodotMCPBridge autoload.
-
-### run_project(projectPath)
-
-Launch a Godot project with remote debugger enabled.
-
-**Parameters:**
-- `projectPath` (string): Absolute path to project directory containing `project.godot`
-
-**Returns:**
-- Success confirmation with process ID
-
-**Example:**
-```typescript
-run_project({ projectPath: "/Users/ben/code/my-game" })
-```
-
-**Notes:**
-- Automatically enables remote debugger on port 6007
-- Takes 2-3 seconds for project to fully start
-- Bridge begins auto-capturing screenshots every 2 seconds
-- Check `get_debug_output()` if game doesn't appear to start
-
-### stop_project()
-
-Stop the currently running Godot project.
-
-**Parameters:** None
-
-**Returns:**
-- Success confirmation
-
-**Example:**
-```typescript
-stop_project()
-```
-
-**Notes:**
-- Kills the Godot process gracefully
-- Cleans up debugger connection
-- Safe to call even if no project is running
-
-### get_debug_output()
-
-Retrieve stdout/stderr from the running Godot process.
-
-**Parameters:** None
-
-**Returns:**
-- Array of log lines (most recent first)
-
-**Example:**
-```typescript
-get_debug_output()
-// Returns: ["Frame 1234", "Button pressed", "MCP command: click", ...]
-```
-
-**Use cases:**
-- Check if game started successfully
-- Debug print statements from your game
-- Verify bridge initialization ("Godot MCP Bridge initialized")
-- Inspect error messages
-
-### game_screenshot()
-
-Capture the current viewport and return as base64 image.
-
-**Parameters:** None
-
-**Returns:**
-- Base64-encoded PNG image of the game viewport
-
-**Example:**
-```typescript
-game_screenshot()
-// Returns: base64 PNG data
-```
-
-**Notes:**
-- Captures the main viewport at full resolution
-- Bridge auto-saves screenshots to `/tmp/godot_screenshot.png` every 2 seconds
-- This tool provides immediate capture via MCP response
-- Works on stock Godot (unlike `capture_screenshot` from upstream DAP)
-
-### game_scene_tree(path, depth)
-
-Inspect the scene tree with node types, positions, and properties.
-
-**Parameters:**
-- `path` (string, optional): Root path to start inspection, default: `/root`
-- `depth` (number, optional): Traversal depth, default: 3
-
-**Returns:**
-- JSON tree structure with nodes
-
-**Node properties:**
-- `name`: Node name
-- `type`: Node class (Control, Button, Label, Node3D, etc.)
-- `rect`: For Control nodes: `{x, y, w, h}` in screen coordinates
-- `visible`: For Control nodes: visibility state
-- `text`: For Button/Label nodes: display text
-- `children`: Array of child nodes (up to depth limit)
-
-**Example:**
-```typescript
-game_scene_tree({ path: "/root/Main/UILayer", depth: 2 })
-// Returns:
-{
-  "name": "UILayer",
-  "type": "CanvasLayer",
-  "children": [
-    {
-      "name": "VictoryPopup",
-      "type": "CenterContainer",
-      "rect": {"x": 640, "y": 360, "w": 400, "h": 200},
-      "visible": true,
-      "children": [
-        {
-          "name": "OKButton",
-          "type": "Button",
-          "rect": {"x": 720, "y": 480, "w": 80, "h": 40},
-          "text": "OK",
-          "visible": true
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Use cases:**
-- Find clickable UI elements (buttons, controls)
-- Verify UI layout and positioning
-- Check visibility states
-- Locate nodes by name/type for property access
-
-**Key gotcha:** UI coordinates are full resolution (e.g., 1920x1080), not screenshot pixel coordinates. Always use `game_scene_tree` to get accurate `rect` values for clicking.
-
-### game_click(x, y, button)
-
-Simulate a mouse click at screen coordinates.
-
-**Parameters:**
-- `x` (number): Screen X coordinate
-- `y` (number): Screen Y coordinate
-- `button` (number, optional): Mouse button index, default: 1 (left click)
-  - 1: Left button (MOUSE_BUTTON_LEFT)
-  - 2: Right button (MOUSE_BUTTON_RIGHT)
-  - 3: Middle button (MOUSE_BUTTON_MIDDLE)
-
-**Returns:**
-- Success confirmation with coordinates
-- Automatically captures screenshot after click
-
-**Example:**
-```typescript
-game_click({ x: 720, y: 480, button: 1 })
-// Returns: {"type": "click", "success": true, "x": 720, "y": 480}
-```
-
-**Notes:**
-- Simulates press + release with 50ms delay
-- Takes a screenshot 200ms after release
-- Use `game_scene_tree` to find button `rect` coordinates
-- Coordinates are in full window resolution, not SubViewport pixels
-
-**Workflow:**
-1. Call `game_screenshot()` to see the game
-2. Call `game_scene_tree()` to find button positions
-3. Call `game_click()` with button's center coordinates
-4. Call `game_screenshot()` to verify result
-
-### game_key(key)
-
-Simulate a key press using Godot key names.
-
-**Parameters:**
-- `key` (string): Godot key name (e.g., "Space", "Escape", "Enter", "A")
-
-**Returns:**
-- Success confirmation
-- Automatically captures screenshot after key press
-
-**Example:**
-```typescript
-game_key({ key: "Space" })
-game_key({ key: "Escape" })
-game_key({ key: "Q" })
-```
-
-**Common key names:**
-- Letters: "A", "B", "C", etc.
-- Numbers: "0", "1", "2", etc.
-- Special: "Space", "Enter", "Escape", "Tab"
-- Arrows: "Up", "Down", "Left", "Right"
-- Function: "F1", "F2", etc.
-
-**Notes:**
-- Uses `OS.find_keycode_from_string()` - must be valid Godot key name
-- Simulates press + release with 50ms delay
-- Takes screenshot 200ms after release
-- Case-sensitive for letters (use uppercase "A", not "a")
-
-### game_action(name)
-
-Trigger a Godot input action defined in InputMap.
-
-**Parameters:**
-- `name` (string): Action name from project InputMap
-
-**Returns:**
-- Success confirmation
-- Automatically captures screenshot after action
-
-**Example:**
-```typescript
-game_action({ name: "jump" })
-game_action({ name: "ui_accept" })
-game_action({ name: "shoot" })
-```
-
-**Notes:**
-- Action must be defined in project's InputMap (project.godot)
-- Simulates action press + release with 50ms delay
-- Takes screenshot 200ms after release
-- Works with multi-key bindings (triggers the action, not specific keys)
-
-**Use cases:**
-- Test gameplay actions without knowing exact key bindings
-- Trigger complex input combinations (e.g., "dash" = Shift+W)
-- Test controller/gamepad actions
-
-### game_get_property(node_path, property)
-
-Read a node property at runtime.
-
-**Parameters:**
-- `node_path` (string): Absolute node path from `/root` (e.g., `/root/Main/Player`)
-- `property` (string): Property name (e.g., `position`, `health`, `visible`)
-
-**Returns:**
-- Property value (JSON-serialized)
-
-**Example:**
-```typescript
-game_get_property({ node_path: "/root/Main/Player", property: "position" })
-// Returns: {"x": 5.2, "y": 0.0, "z": 3.8}
-
-game_get_property({ node_path: "/root/Main/UILayer/HUD", property: "visible" })
-// Returns: true
-```
-
-**Supported types:**
-- Primitives: bool, int, float, String
-- Vectors: Vector2, Vector2i, Vector3, Vector3i (as `{x, y, z}`)
-- Color: `{r, g, b, a}`
-- Arrays/Dictionaries: recursively converted
-- Objects: `"<ClassName>"`
-- NodePath: string representation
-
-**Use cases:**
-- Verify game state (player health, position, score)
-- Check UI visibility and text
-- Validate object properties after interactions
-
-### game_set_property(node_path, property, value)
-
-Write a node property at runtime.
-
-**Parameters:**
-- `node_path` (string): Absolute node path from `/root`
-- `property` (string): Property name
-- `value` (any): New value (JSON-serializable)
-
-**Returns:**
-- Success confirmation
-- Automatically captures screenshot after change
-
-**Example:**
-```typescript
-game_set_property({
-  node_path: "/root/Main/Player",
-  property: "position",
-  value: { x: 10, y: 0, z: 5 }
-})
-
-game_set_property({
-  node_path: "/root/Main/UILayer/VictoryPopup",
-  property: "visible",
-  value: true
-})
-```
-
-**Notes:**
-- Takes screenshot 100ms after property change
-- Use JSON object syntax for Vector2/Vector3: `{x, y}` or `{x, y, z}`
-- For testing, you can force game states (show popups, move player, etc.)
-
-**Use cases:**
-- Force UI visibility for testing
-- Teleport player to test positions
-- Set health/score to test edge cases
-- Trigger game states without playing through
-
-## Workflow Patterns
-
-### Pattern 1: Basic UI Test Loop
-
-Test a button click and verify the result.
-
-**Steps:**
-
-1. **Launch the game:**
-   ```typescript
-   run_project({ projectPath: "/Users/ben/code/my-game" })
+**Verify with properties, not screenshots.** For any boolean question — is it visible, did the
+score change, is the state `VICTORY` — read the property. It is live and true regardless of
+render state, whereas a screenshot has four ways to lie to you. Reserve screenshots for layout
+and look.
+
+**Force states instead of playing to them.** `game_set_property` on a state enum or a popup's
+`visible` gets you to the case you want to inspect in one call.
+
+---
+
+## Gotchas
+
+- **Code changes need a full restart.** Debug runs do not hot-reload GDScript. Kill, relaunch.
+- **A brand-new `class_name` fails headless syntax checks** until the project is reimported —
+  `--check-only` reads the global class cache, so you get a spurious
+  `Identifier "Foo" not declared`. Run `godot --headless --path . --import` once.
+- **Headless Godot under an agent sandbox crashes or hangs.** If it cannot write `user://logs`
+  it either dies with SIGSEGV or hangs on an XPC `Connection Invalid` — which surfaces as a
+  segfault backtrace or a test-suite timeout and gets debugged as a real bug for half an hour.
+  It is just filesystem denial. Disable the sandbox on the *first* Godot call, and tell
+  subagents the same up front.
+- **The bridge screenshot is not a deliverable.** It is resampled down to canvas size on
+  purpose (see Coordinates). Fine for looking at; wrong for anything shipped. For real assets,
+  render at full resolution from inside the game.
+- **A 1–2s one-shot animation cannot be caught with MCP round-trips** — the calls straddle the
+  window and you see idle → idle, which reads as "nothing happened". Trigger it, then grab 5–7
+  frames ~0.1s apart in a single shell command.
+- **Fine detail is the human's job.** The PNG is downscaled in the agent's view; small props
+  and fast motion read poorly. Hand feel- and motion-based judgements to the user, who is
+  looking at the window at full resolution.
+- **Screens stack.** Opening a modal over an already-open modal usually produces something
+  unusable rather than an error. Reset UI layers when moving between screens.
+- **Warps often only go forward.** A "jump to level N" command that silently no-ops going
+  backwards will waste your time; start a fresh run instead.
+
+---
+
+## Setup for a new project
+
+1. **Build the server:** `cd <godot-mcp> && npm install && npm run build`
+
+2. **Copy the bridge** from `assets/templates/godot_mcp_bridge.gd` into the project as
+   `res://scripts/autoload/godot_mcp_bridge.gd`. Use *this* template — it speaks protocol
+   v4.0. Copies bundled with older checkouts of godot-mcp may still be v3 (global `/tmp/godot_*`
+   paths), and a v3 bridge is invisible to a v4 server.
+
+3. **Register the autoload** in `project.godot`:
+   ```ini
+   [autoload]
+   GodotMCPBridge="*res://scripts/autoload/godot_mcp_bridge.gd"
    ```
 
-2. **Wait for startup (check logs):**
-   ```typescript
-   get_debug_output()
-   // Look for "Godot MCP Bridge initialized"
+4. **Create `.mcp.json`** at the project root (template: `assets/templates/mcp.json.template`):
+   ```json
+   {
+     "mcpServers": {
+       "godot": {
+         "command": "node",
+         "args": ["<PATH_TO_GODOT_MCP>/build/index.js"],
+         "env": { "GODOT_PATH": "<PATH_TO_GODOT_BINARY>" }
+       }
+     }
+   }
    ```
+   Godot paths: macOS `/Applications/Godot.app/Contents/MacOS/Godot`, Linux `/usr/bin/godot`,
+   Windows `C:/Godot/godot.exe`.
 
-3. **Observe initial state:**
-   ```typescript
-   game_screenshot()
-   ```
+5. **Validate:** `godot --headless --path . --import 2>&1 | grep -E "SCRIPT ERROR|ERROR:"`
 
-4. **Inspect scene tree to find button:**
-   ```typescript
-   game_scene_tree({ path: "/root/Main/UILayer", depth: 3 })
-   // Note the button's rect: {x: 720, y: 480, w: 80, h: 40}
-   ```
+6. **Restart the session** — MCP servers load at startup.
 
-5. **Click button center:**
-   ```typescript
-   game_click({ x: 760, y: 500 })  // Center of button
-   ```
+7. **Then earn the real speedup:** add the dev-console commands above. The MCP tools are the
+   floor; a project with `start_run` / `skip_to_level` / `ui_buttons` is an order of magnitude
+   faster to drive than one without.
 
-6. **Verify result:**
-   ```typescript
-   game_screenshot()  // See visual result
-   get_debug_output()  // Check for print statements
-   ```
-
-### Pattern 2: Property Inspection and Validation
-
-Verify game state after actions.
-
-**Steps:**
-
-1. **Launch and perform action:**
-   ```typescript
-   run_project({ projectPath: "/path/to/game" })
-   game_click({ x: 640, y: 360 })  // Click play button
-   ```
-
-2. **Read game state:**
-   ```typescript
-   game_get_property({ node_path: "/root/Main/Player", property: "health" })
-   // Returns: 100
-
-   game_get_property({ node_path: "/root/Main/Ball", property: "position" })
-   // Returns: {"x": 0, "y": 0, "z": 0}
-   ```
-
-3. **Trigger gameplay:**
-   ```typescript
-   game_action({ name: "select_card" })
-   ```
-
-4. **Verify state change:**
-   ```typescript
-   game_get_property({ node_path: "/root/Main/Ball", property: "position" })
-   // Returns: {"x": 5, "y": 0, "z": 3}  // Ball moved!
-   ```
-
-### Pattern 3: Forcing Game States for Testing
-
-Set up specific scenarios without manual play.
-
-**Steps:**
-
-1. **Launch game:**
-   ```typescript
-   run_project({ projectPath: "/path/to/game" })
-   ```
-
-2. **Force victory state:**
-   ```typescript
-   game_set_property({
-     node_path: "/root/Main",
-     property: "state",
-     value: "VICTORY"
-   })
-   ```
-
-3. **Show victory popup:**
-   ```typescript
-   game_set_property({
-     node_path: "/root/Main/UILayer/VictoryPopup",
-     property: "visible",
-     value: true
-   })
-   ```
-
-4. **Verify UI appears correctly:**
-   ```typescript
-   game_screenshot()
-   game_scene_tree({ path: "/root/Main/UILayer/VictoryPopup" })
-   ```
-
-5. **Test OK button:**
-   ```typescript
-   game_click({ x: 760, y: 500 })
-   ```
-
-### Pattern 4: Debugging Visual Issues
-
-Investigate rendering problems.
-
-**Steps:**
-
-1. **Launch game:**
-   ```typescript
-   run_project({ projectPath: "/path/to/game" })
-   ```
-
-2. **Capture screenshot:**
-   ```typescript
-   game_screenshot()
-   // Observe: button is not visible
-   ```
-
-3. **Inspect button properties:**
-   ```typescript
-   game_get_property({ node_path: "/root/Main/UILayer/PlayButton", property: "visible" })
-   // Returns: false  // Aha! Button is hidden
-   ```
-
-4. **Check parent visibility:**
-   ```typescript
-   game_get_property({ node_path: "/root/Main/UILayer", property: "visible" })
-   // Returns: true
-   ```
-
-5. **Fix the bug** (in code):
-   ```gdscript
-   # In your script:
-   $PlayButton.visible = true  # Was missing this line
-   ```
-
-6. **Restart and verify:**
-   ```typescript
-   stop_project()
-   run_project({ projectPath: "/path/to/game" })
-   game_screenshot()
-   ```
-
-## Key Gotchas
-
-### Gotcha 1: UI Coordinates Are Full Resolution
-
-**Problem:** Screenshots are 640x360 (SubViewport), but UI coordinates are 1920x1080 (window resolution).
-
-**Solution:** Always use `game_scene_tree` to get button `rect` values. Do not manually calculate click coordinates from screenshot pixels.
-
-**Example:**
-```typescript
-// ❌ WRONG: Clicking screenshot pixel coordinates
-game_screenshot()  // 640x360 image
-game_click({ x: 320, y: 180 })  // Center of screenshot = WRONG
-
-// ✅ CORRECT: Use scene_tree rect
-game_scene_tree({ path: "/root/Main/UILayer" })
-// Returns: { name: "PlayButton", rect: {x: 860, y: 520, w: 200, h: 80} }
-game_click({ x: 960, y: 560 })  // Center of rect = CORRECT
-```
-
-### Gotcha 2: Stock Godot DAP Limitation
-
-**Problem:** The upstream Godot DAP `capture_screenshot` tool doesn't work on stock Godot builds.
-
-**Solution:** Use `game_screenshot()` from this skill instead. It works through the file-based bridge protocol (`/tmp/godot_screenshot.png`).
-
-**Why it matters:** Other Godot DAP tools may advertise `capture_screenshot`, but it requires a custom Godot build with DAP screenshot support. The bridge's `game_screenshot()` always works.
-
-### Gotcha 3: Bridge Initialization Delay
-
-**Problem:** Calling MCP tools immediately after `run_project()` may fail if bridge isn't ready.
-
-**Solution:** Check `get_debug_output()` for "Godot MCP Bridge initialized" before calling game interaction tools.
-
-**Example:**
-```typescript
-run_project({ projectPath: "/path/to/game" })
-// Wait 2-3 seconds or poll debug output
-get_debug_output()
-// Look for: "Godot MCP Bridge initialized — screenshots: /tmp/godot_screenshot.png..."
-```
-
-### Gotcha 4: Scene Tree Depth Limit
-
-**Problem:** `game_scene_tree()` defaults to depth 3, may not show deeply nested nodes.
-
-**Solution:** Increase `depth` parameter for deeper inspection, or query specific subtrees.
-
-**Example:**
-```typescript
-// Shallow inspection
-game_scene_tree({ path: "/root/Main", depth: 2 })
-
-// Deep inspection of UI subtree
-game_scene_tree({ path: "/root/Main/UILayer/VictoryPopup", depth: 5 })
-```
-
-### Gotcha 5: File-Based Protocol Synchronization
-
-**Problem:** Bridge uses file-based communication (`/tmp/godot_mcp_command.json` and `/tmp/godot_mcp_response.json`), which is polled every frame.
-
-**Solution:** MCP tools handle synchronization automatically. Response is written after command completes. No manual delays needed.
-
-**How it works:**
-1. MCP tool writes command to `/tmp/godot_mcp_command.json`
-2. Bridge polls the file every frame
-3. Bridge executes command and deletes command file
-4. Bridge writes response to `/tmp/godot_mcp_response.json`
-5. Bridge prints `MCP_RESPONSE:{...}` to stdout
-6. MCP tool reads response and returns to caller
-
-**You don't need to do anything special** - just call the tools normally.
-
-## Bridge Communication Protocol
-
-The GodotMCPBridge autoload implements a file-based protocol for communication:
-
-**Command file:** `/tmp/godot_mcp_command.json`
-- MCP server writes JSON commands here
-- Bridge polls every frame
-- Bridge deletes after reading
-
-**Response file:** `/tmp/godot_mcp_response.json`
-- Bridge writes JSON responses here
-- MCP server reads responses
-
-**Screenshot file:** `/tmp/godot_screenshot.png`
-- Bridge auto-saves every 2 seconds
-- Bridge updates after clicks/keys (200ms delay)
-- MCP tools can read this file directly
-
-**Debug output:**
-- Bridge prints `MCP_RESPONSE:{...}` to stdout
-- MCP server captures via `get_debug_output()`
-
-**Command format:**
-```json
-{
-  "action": "click",
-  "x": 640,
-  "y": 360,
-  "button": 1
-}
-```
-
-**Response format:**
-```json
-{
-  "type": "click",
-  "success": true,
-  "x": 640,
-  "y": 360
-}
-```
-
-## Best Practices
-
-### 1. Always Inspect Before Clicking
-
-Use `game_scene_tree` to find button positions - don't guess coordinates.
-
-```typescript
-// ✅ CORRECT workflow
-game_scene_tree({ path: "/root/Main/UILayer" })
-// Find button rect
-game_click({ x: rect.x + rect.w/2, y: rect.y + rect.h/2 })
-
-// ❌ WRONG workflow
-game_screenshot()
-// Guess coordinates from image
-game_click({ x: 640, y: 360 })
-```
-
-### 2. Check Debug Output for Errors
-
-After interactions, check `get_debug_output()` for print statements and errors.
-
-```typescript
-game_click({ x: 640, y: 360 })
-get_debug_output()
-// Look for "Button pressed" or error messages
-```
-
-### 3. Use Property Inspection for Validation
-
-Don't just rely on screenshots - verify internal game state.
-
-```typescript
-game_click({ x: 640, y: 360 })
-game_get_property({ node_path: "/root/Main/Player", property: "health" })
-// Confirm health decreased as expected
-```
-
-### 4. Force States for Faster Testing
-
-Use `game_set_property` to skip to specific game states.
-
-```typescript
-// Skip tutorial, go straight to level 5
-game_set_property({ node_path: "/root/Main", property: "current_level", value: 5 })
-```
-
-### 5. Clean Up After Tests
-
-Always stop the project when done to free resources.
-
-```typescript
-stop_project()
-```
-
-## Common Use Cases
-
-### Use Case 1: Automated UI Regression Testing
-
-Test that buttons still work after code changes.
-
-```typescript
-run_project({ projectPath: "/path/to/game" })
-game_screenshot()
-game_scene_tree({ path: "/root/Main/UILayer" })
-game_click({ x: 640, y: 360 })  // Play button
-game_get_property({ node_path: "/root/Main", property: "state" })
-// Assert: state is "PLAYING"
-stop_project()
-```
-
-### Use Case 2: Visual Debugging
-
-Investigate why a UI element doesn't appear.
-
-```typescript
-run_project({ projectPath: "/path/to/game" })
-game_screenshot()  // See the issue
-game_scene_tree({ path: "/root/Main/UILayer" })  // Check hierarchy
-game_get_property({ node_path: "/root/Main/UILayer/MissingButton", property: "visible" })
-// Debug: visible is false!
-```
-
-### Use Case 3: Game State Validation
-
-Verify gameplay logic by checking properties.
-
-```typescript
-run_project({ projectPath: "/path/to/game" })
-game_action({ name: "attack" })
-game_get_property({ node_path: "/root/Main/Enemy", property: "health" })
-// Verify: health decreased correctly
-```
-
-### Use Case 4: Screenshot Documentation
-
-Capture screenshots of all UI states for documentation.
-
-```typescript
-run_project({ projectPath: "/path/to/game" })
-game_screenshot()  // Main menu
-game_click({ x: 640, y: 360 })  // Start game
-game_screenshot()  // Gameplay
-game_set_property({ node_path: "/root/Main/Popup", property: "visible", value: true })
-game_screenshot()  // Settings popup
-```
+---
 
 ## Troubleshooting
 
-### Game Won't Start
+**`game_*` tools time out, but `run_project` succeeded**
+Bridge not loaded, or not where the client is looking. Check `get_debug_output()` for
+`Godot MCP Bridge initialized`, confirm the autoload is registered, and confirm the bridge is
+v4.0 — a v3 bridge writes to `/tmp/godot_*` and the server will never see it. Then check
+`/tmp/godot-mcp/*/instance.json` for which instances are actually live.
 
-**Symptoms:** `run_project()` succeeds but no screenshot appears.
+**Commands land in the wrong game**
+Two instances of the same project share a directory and race for commands. Symptoms are
+uncanny: a command "succeeds" but hits the other instance, responses get clobbered, screenshots
+alternate between two states. Run one, or launch the secondary with the bridge disabled.
 
-**Check:**
-1. Verify Godot path in `.mcp.json` is correct
-2. Check `get_debug_output()` for errors
-3. Ensure bridge autoload is registered in `project.godot`
+**Screenshot is stale, black, or identical across changes**
+In order: is `screenshots_enabled` true? Is the window occluded (check the md5)? Did you force
+a capture rather than reading the file? Was there a restart since the last capture? Only after
+all four should you suspect the camera or the scene.
 
-**Solution:**
-```typescript
-get_debug_output()
-// Look for "Godot MCP Bridge initialized"
-// If missing, bridge isn't loaded
-```
+**A click has no effect**
+Almost never the coordinate. Check `visible`, check `mouse_filter`, and check what is drawn
+over the target — a `ui_buttons`-style command reports the blocker directly. For staging,
+bypass input entirely and emit `pressed()`.
 
-### Click Doesn't Work
-
-**Symptoms:** `game_click()` succeeds but button doesn't respond.
-
-**Check:**
-1. Coordinates are correct (use `game_scene_tree`)
-2. Button is visible (`game_get_property`)
-3. UI is not blocked by another node
-
-**Solution:**
-```typescript
-game_scene_tree({ path: "/root/Main/UILayer" })
-// Verify button rect
-game_get_property({ node_path: "/root/Main/UILayer/Button", property: "visible" })
-// Verify button is visible
-```
-
-### Property Not Found
-
-**Symptoms:** `game_get_property()` returns error "Node not found".
-
-**Check:**
-1. Node path is correct (use `game_scene_tree` to find path)
-2. Node exists at runtime (may be dynamically created)
-
-**Solution:**
-```typescript
-game_scene_tree({ path: "/root/Main", depth: 5 })
-// Find the correct node path
-```
-
-### Screenshot Is Black/Empty
-
-**Symptoms:** Screenshot is solid black or shows nothing.
-
-**Check:**
-1. Game has finished rendering (wait 2-3 seconds after launch)
-2. Camera is active and positioned correctly
-3. Scene has visible nodes
-
-**Solution:**
-```typescript
-run_project({ projectPath: "/path/to/game" })
-// Wait 3 seconds
-get_debug_output()
-// Check for "Frame N" output indicating rendering
-game_screenshot()
-```
-
-## Summary
-
-The godot-interactive skill enables automated testing and debugging of Godot games through MCP tools:
-
-1. **Launch games** with `run_project()` and remote debugger
-2. **Observe state** with `game_screenshot()` and `game_scene_tree()`
-3. **Interact** with `game_click()`, `game_key()`, `game_action()`
-4. **Inspect/modify** with `game_get_property()` and `game_set_property()`
-5. **Iterate** in a test loop until behavior is verified
-
-**Key insights:**
-- File-based protocol is reliable and works on stock Godot
-- Always use `game_scene_tree` for accurate UI coordinates
-- Bridge autoload handles all synchronization automatically
-- Property inspection validates internal state, not just visuals
-
-This skill transforms Godot development from manual playtesting to automated, reproducible test scenarios.
+**Property reads say "node not found"**
+The node is created at runtime or lives at a different path than the scene file suggests.
+`game_scene_tree(path: "/root", depth: 5)` and read the real path — the live root is often
+`/root/<MainSceneName>`, not the class name you expect.
