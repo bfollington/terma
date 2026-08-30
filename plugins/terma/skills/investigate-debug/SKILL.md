@@ -1,115 +1,77 @@
 ---
 name: investigate-debug
-description: Evidence-driven investigation and debugging framework for long-running, iterative, or ambiguous technical problems. Use when Codex needs to investigate failures, regressions, flaky behavior, performance problems, production incidents, unclear user reports, unknown root causes, or any scientific debugging session where evidence, hypotheses, experiments, findings, and context-resilient notes must be maintained across turns or context compaction.
+description: Use when something is wrong and the cause is not yet known — failures, regressions, flaky behaviour, performance problems, incidents, or a user report that does not match what the code appears to do. Concerns holding the difference between what is observed and what is believed, and spending each action on the question that most divides the possibilities. Trigger on any debugging or investigation where the answer is not already obvious. Do NOT use when the cause is already known and only the fix remains.
 ---
 
-# Investigate Debug
+# Investigate & Debug
 
-## Overview
+Debugging is the discipline of not knowing yet.
 
-Run the investigation as a scientific loop: gather evidence, form explicit hypotheses, test them with targeted experiments, and maintain a durable log that another agent or future compacted context can resume from. Do not blindly follow a fixed checklist; adapt the process to the problem and the evidence.
+The failure is not in the code. It is in the difference between what the system does and what is believed about it, and that belief is wrong somewhere specific. The work is finding where — which means the central act is not fixing, it is *distinguishing*.
 
-## Core Rules
+Every action should divide the possibilities. An action that cannot come out two ways is not an experiment; it is reassurance.
 
-- Keep an investigation log from the start. Prefer a repo-local or user-specified file when appropriate; otherwise keep a concise running log in conversation and summarize it at checkpoints.
-- Separate observations from inference. Label facts, hypotheses, experiments, results, decisions, and open questions distinctly.
-- Preserve negative results. Failed theories, dead ends, and disproven assumptions are useful evidence.
-- Test the highest-information hypothesis available, not the easiest command by habit.
-- Ask the user targeted questions only when the answer would materially change the next experiment or risk profile.
-- Do not treat the framework as a script. Skip, reorder, or repeat sections based on the investigation state.
-- Before major edits or fixes, state the theory being acted on and the evidence supporting it.
-- If context may compact, leave a restartable checkpoint with current state, leading hypotheses, ruled-out paths, and next experiments.
+## Observation is not inference
 
-## Investigation Log
+Keep these apart, in writing, always:
 
-Use this compact structure, adapting labels as needed:
+- **Observed** — what was actually seen, with where it came from. The log line, the exit code, the response body.
+- **Inferred** — what is concluded from it. Note the reasoning; that is what turns out to be wrong.
+- **Assumed** — carried unchecked from before the investigation started.
 
-```markdown
-# Investigation Log: <problem>
+Nearly every long debugging session contains a moment where an inference was recorded as an observation, and hours were then spent inside a world that does not exist. The assumptions are the dangerous category precisely because they are not felt as beliefs — they are felt as background.
 
-## Problem
-- User-visible symptom:
-- Scope / impact:
-- Constraints:
+When stuck for a while, the answer is almost always in the assumed list. Go back and check the thing so obvious it was never checked.
 
-## Known Facts
-- [fact] Source:
+## Two hypotheses, minimum
 
-## Hypotheses
-- H1: <claim> | confidence: low/med/high | evidence for/against:
+One hypothesis is not an investigation. It is a hunch being confirmed, and every observation will be read as supporting it.
 
-## Experiments
-- E1: <command/action> | tests: H<n> | expected if true: | result: | conclusion:
+Hold at least two live explanations, and prefer the experiment that *separates* them over the one that would confirm the favourite. Ask of each: what would I see if this were true, that I would *not* see if the other were? That question is the whole method — where the predictions differ is where the information is, and if two hypotheses predict the same thing, testing there is wasted.
 
-## Decisions / Changes
-- Decision:
-- Rationale:
-- Files / systems touched:
+State the prediction before running the thing. A prediction made afterwards accommodates whatever happened.
 
-## Open Questions
-- Question:
-- Why it matters:
+## Bisect the space, not the code
 
-## Checkpoint
-- Current understanding:
-- Ruled out:
-- Most likely next step:
-- Resume command/context:
-```
+The instinct is to start where the error appeared. The error appeared at the end; the cause is upstream, and often in a different subsystem.
 
-For repo work, create a log only when it will help the session survive multiple turns, complex branching, or compaction. Use a path the user asked for, a repo convention if one exists, or a temporary local note if no durable artifact is appropriate. Do not create process clutter for a short investigation.
+Better to halve the possibility space. Does it happen with the network stubbed? With one record instead of ten thousand? On the previous commit? In a fresh environment? Each answer eliminates a region — and it does not matter whether the answer is yes or no, which is how to tell it was a good question.
 
-## Workflow
+Reproduce it first if reproduction is at all possible. A failure that can be summoned on demand is nearly solved; one that must be waited for will consume days. Making the reproduction smaller and faster is usually the highest-value work available, even when it feels like a detour from finding the cause.
 
-1. Frame the problem.
-   - Restate the symptom, expected behavior, observed behavior, constraints, and stakes.
-   - Identify what would count as proof, reproduction, mitigation, or completion.
+For a regression, bisect history. It is dull, mechanical, and beats reasoning almost every time.
 
-2. Gather baseline evidence.
-   - Inspect current state before changing it: relevant files, logs, tests, configuration, environment, recent changes, and user reports.
-   - Record commands/actions and key outputs. Summarize noisy output instead of pasting large logs.
+## Negative results are results
 
-3. Build competing hypotheses.
-   - Keep at least two plausible explanations when the evidence is thin.
-   - Note what each hypothesis predicts and what observation would falsify it.
+The eliminated hypothesis is progress, and the note that says *it is not the cache, verified by X* is what stops the same avenue being explored again in two hours, or by whoever picks this up next.
 
-4. Run targeted experiments.
-   - Prefer small experiments that distinguish between hypotheses.
-   - Change one meaningful variable at a time when practical.
-   - Record expected result before running the experiment when the prediction is useful.
+An investigation that records only the path to the answer discards most of what it learned.
 
-5. Update beliefs.
-   - After each result, mark hypotheses as strengthened, weakened, falsified, or still ambiguous.
-   - Add new facts and retire stale assumptions explicitly.
+## Understand before fixing
 
-6. Intervene when justified.
-   - Implement fixes only after the evidence points to a likely cause or the user explicitly asks for exploratory changes.
-   - Keep changes scoped to the theory. Add or update tests that capture the behavior when the task involves code.
+A fix that works but whose mechanism is not understood is not a fix. It may have moved the symptom, changed the timing, or masked one of two causes.
 
-7. Verify and close.
-   - Re-run the relevant reproduction, tests, or checks.
-   - Record the final root cause, fix, verification, residual risk, and any follow-up work.
+Before changing anything, be able to say: this input, through this path, produces this wrong result, *because* — and have the because be a mechanism, not a correlation. Then the fix has a target, and it is possible to say what else the bug was affecting that nobody had noticed.
 
-## Collaboration
+The test to write is the one that fails now for the right reason and would fail again if this specific cause returned. Not a test that the symptom is gone — those pass for many reasons.
 
-- Keep the user informed with concise updates when investigations run long.
-- Ask for missing context when local evidence cannot answer a question safely: symptoms, timeline, deployment/version, recent changes, reproduction details, acceptable risk, or access constraints.
-- Offer a decision point when there are multiple reasonable next experiments with different cost, risk, or user involvement.
-- When blocked, summarize exactly what is known, what was tried, why it is blocked, and what input or permission would unblock it.
+Then check whether the cause has siblings. Bugs of a kind rarely occur once.
 
-## Checkpointing
+## Notes that survive
 
-Create a checkpoint whenever the investigation changes phase, reaches a non-obvious conclusion, runs longer than the current context can safely hold, or pauses for user input. A useful checkpoint lets a fresh agent continue without repeating work:
+Investigations outlast the context holding them — through compaction, interruption, handover, or a day off.
 
-```markdown
-Checkpoint:
-- Symptom:
-- Evidence gathered:
-- Current leading theory:
-- Hypotheses ruled out:
-- Experiments run:
-- Changes made:
-- Verification status:
-- Next best experiments:
-- User decisions needed:
-```
+Keep a running note from the start, weighted to what is expensive to re-derive: what is established and how, what has been ruled out and by what, the current leading explanation, and the next experiment that would divide the space. Not a transcript. The commands that produced nothing are the least valuable thing to preserve; the conclusions and the eliminations are the most.
+
+Write it so someone arriving cold could take the next action without repeating the last twenty.
+
+## Failure modes
+
+- **Fixing the symptom.** The exception is gone. Whatever produced it still runs.
+- **One hypothesis.** Confirmation with extra steps.
+- **Random perturbation.** Changing things to see what happens, without a prediction. When it starts working, nothing has been learned, and it will return.
+- **Inference recorded as observation.** The most costly single error available.
+- **Starting at the error site.** That is where it surfaced, not where it began.
+- **Not reproducing first.** Every subsequent result becomes ambiguous.
+- **Trusting the story over the system.** The documentation, the comment, and the variable name all describe intent. The behaviour is the fact.
+- **Silent dead ends.** Ruling something out and not writing it down, then ruling it out again later.

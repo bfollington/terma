@@ -12,10 +12,8 @@ Terma is a Claude Code plugin marketplace. The repo root is the marketplace, con
 .claude-plugin/marketplace.json     # Marketplace manifest
 plugins/terma/                      # Process & philosophy plugin
   .claude-plugin/plugin.json        # Plugin manifest
-  commands/                         # Slash commands (18 .md files)
   agents/                           # Subagent definitions (6 .md files)
-  skills/                           # Meta skills (skill-improver)
-  lib/                              # Shared philosophy & process modules
+  skills/                           # Self-contained skills, one directory each
 plugins/tsal/                       # Domain-specific skills plugin
   .claude-plugin/plugin.json        # Plugin manifest
   skills/                           # Domain skills (bevy, godot, strudel, etc.)
@@ -94,28 +92,19 @@ Update the version in both:
 - `plugins/terma/.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json` (the plugin entry's `version` field)
 
-### How Commands Reference Shared Modules
+### Skills Are Self-Contained
 
-Commands in `plugins/terma/commands/` reference shared modules in `plugins/terma/lib/` using `@` path syntax:
+Terma skills do not share includes. Each `SKILL.md` stands alone, so it can be read, rewritten, or
+deleted without tracing a chain of `@` references, and loading one does not silently pull in five
+others. There was previously a `lib/` directory of shared modules referenced via `@` paths; it was
+dissolved into the skills themselves.
 
-```markdown
-Read and apply the guidance from @../lib/feature.md
-```
+Where two skills genuinely adjoin, name the neighbour in prose rather than including it — the reader
+can load it if the moment calls for it.
 
-Lib modules can reference other lib modules:
-
-```markdown
-Read and apply the guidance from @./thought-process.md
-```
-
-When the plugin is installed, the entire `plugins/terma/` directory is cached, so all internal relative paths resolve correctly.
-
-### Adding a New Command
-
-1. Create a `.md` file in `plugins/terma/commands/`
-2. Use `$ARGUMENTS` to capture user input
-3. Reference lib modules with `@../lib/module.md` for shared guidance
-4. The command will be available as `/terma:command-name`
+The house style is described in `plugins/terma/skills/authoring-skills/SKILL.md`. In short: say what
+would not have been done anyway, one subject per skill, a description that states both when it fires
+and when it does not, and a failure-modes list at the end.
 
 ### Adding a New Skill
 

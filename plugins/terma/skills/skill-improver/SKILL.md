@@ -1,211 +1,63 @@
 ---
 name: skill-improver
-description: This skill should be used at natural checkpoints (after completing complex tasks, at session end, or when friction occurs) to reflect on skill and process execution and identify targeted improvements. Use when experiencing confusion, repeated failures, or discovering new patterns that should be codified into skills for smoother future operation.
+description: Use at a checkpoint after real friction — a task where something was repeatedly confusing, a skill misfired or failed to fire, or a workaround was invented that should not have been needed. Concerns turning friction into a change to the skills themselves, and knowing when the right change is to cut rather than add. Trigger at session end after substantial work, or when the same problem has now happened more than once. Do NOT use reflexively after routine tasks, or mid-task.
 ---
 
 # Skill Improver
 
-## Overview
+Skills improve from friction, not from review. The question is never "could this skill be better" — everything could. It is **what actually went wrong, and would a change to a skill have prevented it?**
 
-This skill guides reflective improvement of skills and processes through structured analysis. Rather than automatically suggesting changes, it provides a framework for mindful reflection to identify high-impact improvements without creating bloat.
+Most friction should not become a skill change. It was environmental, or a one-off, or already covered by something that simply did not fire. Changing skills in response to noise is how a sharp set becomes a bloated one, and bloat is the failure mode that matters here — every unnecessary line makes the necessary ones less visible.
 
-The philosophy follows Buddhist "skillful means" (upaya) - developing concrete, practical wisdom through iteration. The goal is harmonious operation between Claude and the user by refining skills to be clearer, more complete, and more efficient.
+## Start from what actually happened
 
-## When to Use This Skill
+Not "how did that go" but: where specifically was there confusion, repetition, a wrong turn taken and reversed, a workaround invented, or a correction from the user?
 
-**Use this skill:**
-- At the end of a session when significant work has been completed
-- After completing a complex task that involved multiple skills or tools
-- When experiencing repeated friction, confusion, or failures during execution
-- When discovering a workaround or novel pattern that should be captured
-- When the user expresses frustration with a process or skill
-- After successfully navigating a challenging workflow that could be easier next time
+Each of those is a candidate. For each, the question that decides everything: **would a skill have prevented this, and which one?**
 
-**Do not use this skill:**
-- After every tiny task (reflection should be purposeful, not reflexive)
-- When there's nothing substantial to improve
-- During active work (finish first, then reflect)
+Usually the answer is one of:
 
-## Reflection Workflow
+- **A skill existed and did not fire.** The problem is the description, not the body. Fix the trigger.
+- **A skill fired and was ignored or misapplied.** The content is not landing — usually buried, hedged, or stated so generally it did not connect to the situation.
+- **A skill was right but incomplete** in a way that recurs. A real gap.
+- **No skill covers this, and it will happen again.** Possibly a new skill.
+- **Nothing would have helped.** Environmental, novel, or genuinely one-off. This is the most common answer and it is a fine one.
 
-### 1. Identify the Context
+## Has it happened twice?
 
-Clearly establish what process or skill is being reflected upon:
-- What was the original goal or request?
-- Which skills were used?
-- What tools and resources were involved?
-- How did the process unfold?
+A single occurrence is an anecdote. Skills written from one incident encode a situation that may never recur, and they cost context on every load thereafter.
 
-### 2. Apply the Reflection Framework
+Twice is a pattern worth encoding. Once is worth remembering and watching for.
 
-Use `references/reflection_framework.md` to systematically analyze the experience. The framework provides structured questions across five dimensions:
+The exception: a single failure that was expensive or would have been irreversible. Those earn a change on first occurrence.
 
-1. **Process Execution** - What happened? What worked? What didn't?
-2. **Skill Content Analysis** - Was the skill clear, complete, efficient, accurate?
-3. **Tool and Resource Analysis** - Were the right tools available? Did they work well?
-4. **Pattern Recognition** - Is this a one-time issue or recurring pattern?
-5. **Improvement Identification** - What specific changes would help?
+## Prefer cutting
 
-Load and review the framework:
+The reflex after a failure is to append a clause covering it. A few rounds of that produces something long, hedged, and no longer sharp — and the appended clauses are the least-read part of any skill.
 
-```
-Read references/reflection_framework.md and work through the relevant questions
-```
+So ask first: **would the existing principle, stated better, have covered this?** Usually yes. Then the change is a sharper sentence, not an extra one — and the skill gets shorter while getting stronger.
 
-### 3. Identify Improvement Patterns
+Additions should be rare and should earn their line. Ask what would be cut to make room, and if nothing can be, question whether the addition is really needed.
 
-Consult `references/improvement_patterns.md` to recognize common issues:
-- Clarity issues (ambiguous descriptions, jargon, vague steps)
-- Completeness issues (missing prerequisites, edge cases, error handling)
-- Efficiency issues (redundant instructions, missing scripts, context bloat)
-- Usability issues (poor discoverability, overwhelming complexity)
-- Structural issues (wrong abstraction level, missing decision trees)
+The strongest improvement available is usually a new failure mode at the bottom of an existing skill: one line, high density, naming a trap that was just fallen into.
 
-Load and cross-reference patterns:
+## Fixing triggers
 
-```
-Read references/improvement_patterns.md to identify which patterns match the observed issues
-```
+A skill that did not fire is not fixed by improving its content. Nobody read it.
 
-### 4. Formulate Specific Improvements
+The description needs the situation in the words it actually arrives in — the phrasing the user really used, not the topic in the abstract. And a negative case, because a skill that fires everywhere is noise and gets ignored, which is the same as not firing.
 
-Based on reflection, create concrete, actionable improvement proposals. Each improvement should include:
+## What to say
 
-- **Skill/Process**: Name of what's being improved
-- **Issue Observed**: Concrete description of the problem
-- **Root Cause**: Why this happened (what's missing or wrong)
-- **Proposed Change**: Specific, actionable improvement
-- **Impact**: High/Medium/Low priority
-- **Implementation**: Exact files and changes needed
+Keep it short and specific: what happened, which skill, whether it recurs, what one change, and whether that change is a cut or an addition.
 
-### 5. Apply Improvement Principles
+If nothing is worth changing, say that. A reflection that ends in "no changes needed" is a successful reflection, and much better than one that invents work to justify itself.
 
-Before finalizing recommendations, verify they follow skillful means:
+## Failure modes
 
-**Do:**
-- Be specific and concrete
-- Show evidence from actual experience
-- Consider cost/benefit ratio
-- Prefer simplification over addition
-- Document principles and "why", not just "what"
-
-**Don't:**
-- Pile on multiple vague changes
-- Over-engineer solutions
-- Duplicate existing information
-- Spam the user with minor tweaks
-
-### 6. Execute Improvements (if appropriate)
-
-For high-impact improvements:
-- If editing an existing skill, use the skill-creator skill to make changes
-- If creating a new skill is warranted, use the skill-creator skill
-- For process improvements, document the new approach
-
-For lower-impact improvements:
-- Present findings to the user for future consideration
-- Ask if they'd like to implement changes now or later
-
-## Decision Tree: Improve vs Create
-
-Sometimes the best improvement is creating a new skill. Use this decision tree:
-
-**Create a new skill when:**
-- Distinct domain sufficiently different from existing skills
-- Recurring multi-step workflow that happens repeatedly
-- Requires unique scripts, templates, or reference documentation
-- Clear trigger that distinguishes it from other skills
-
-**Improve existing skill when:**
-- Issue is with clarity, completeness, or organization
-- Missing resources (scripts, references, assets) for existing workflow
-- Same domain, just needs better documentation or tools
-- Edge cases or error handling need addressing
-
-**Do nothing when:**
-- Issue was a one-time environmental problem
-- Adding documentation would create bloat without value
-- Change would over-engineer a simple process
-- Proposed improvement won't actually be used
-
-## Resources
-
-This skill includes reference documentation to guide the reflection process:
-
-### references/reflection_framework.md
-
-Structured framework with questions across five dimensions:
-1. Process Execution
-2. Skill Content Analysis
-3. Tool and Resource Analysis
-4. Pattern Recognition
-5. Improvement Identification
-
-Use this to systematically analyze what happened and identify specific improvement opportunities.
-
-### references/improvement_patterns.md
-
-Catalog of common skill issues and their solutions:
-- Clarity issues (ambiguous descriptions, jargon, vague workflows)
-- Completeness issues (missing prerequisites, edge cases, error handling)
-- Efficiency issues (redundancy, missing scripts, context bloat, missing templates)
-- Usability issues (discoverability, complexity, inconsistent terminology)
-- Structural issues (abstraction level, decision trees, undocumented scripts)
-
-Use this to recognize patterns and find proven solutions.
-
-## Example Usage
-
-### Example 1: Missing Scripts
-
-**Scenario**: After using the `pdf-editor` skill to rotate several PDFs, Claude had to rewrite rotation code multiple times due to varying file permissions.
-
-**Reflection**:
-1. **Context**: Used pdf-editor skill to rotate PDFs, encountered permission issues
-2. **Framework application**: Process execution had friction - repetitive code writing, unexpected errors
-3. **Pattern recognition**: Matches "Missing scripts for repetitive tasks" and "Incomplete error handling"
-4. **Improvement formulation**:
-   - **Skill/Process**: pdf-editor
-   - **Issue**: Rewrote PyPDF2 rotation code 3 times; permission errors not handled
-   - **Root Cause**: No rotation script; permission handling undocumented
-   - **Proposed Change**: Create `scripts/rotate_pdf.py` with permission handling; add troubleshooting section
-   - **Impact**: High - eliminates code rewriting, prevents permission errors
-   - **Implementation**: Create script, update SKILL.md to reference it
-5. **Execution**: Use skill-creator to add script and update documentation
-
-### Example 2: Missing Reference Documentation
-
-**Scenario**: After creating a Lorn/Clams Casino inspired beat using the `strudel` skill, user feedback revealed bass tone missed the mark. User corrected: "don't need to encode every iteration" and "bass tone not reminding me of references."
-
-**Reflection**:
-1. **Context**: Used strudel skill for dark ambient hip-hop, encountered two issues
-2. **Framework application**:
-   - Process execution: URL encoding was inefficient during iterations
-   - Skill content: No guidance for translating artist references into techniques
-3. **Pattern recognition**: Matches "Vague workflow steps" and "Missing reference documentation"
-4. **Improvement formulation**:
-   - **Skill/Process**: strudel
-   - **Issue #1**: Encoded URL after every iteration; user said only needed on initial creation
-   - **Root Cause**: Skill said "Always encode after modifications" - too broad
-   - **Proposed Change**: Clarify when to encode (initial only, skip iterations, final if requested)
-   - **Impact**: Medium - prevents unnecessary work
-   - **Implementation**: Update SKILL.md section "Providing Output to the User"
-
-   - **Issue #2**: No systematic guide for artist characteristics (Lorn, Clams Casino)
-   - **Root Cause**: No reference for common genre/artist styles
-   - **Proposed Change**: Create `references/genre-styles.md` with artist characteristics and Strudel techniques
-   - **Impact**: High - translates user references into concrete implementation
-   - **Implementation**: Create reference file, update SKILL.md to reference it
-5. **Execution**: Used skill-creator to implement both improvements; user approved both
-
-## Philosophy: Skillful Means
-
-The goal is harmonious operation through continuous refinement:
-
-- **Concrete over abstract**: Prefer working examples to theoretical descriptions
-- **Simplicity over completeness**: Handle 80% of cases well rather than 100% poorly
-- **Clarity over cleverness**: Straightforward instructions beat elegant complexity
-- **Practical over perfect**: Ship useful improvements, iterate continuously
-- **Harmonious over comprehensive**: Reduce friction, don't add features
-
-Each improvement should make Claude's and the user's life tangibly easier. If it doesn't pass this test, don't recommend it.
+- **Reflexive reflection.** Running this after every task, generating small changes that accumulate into bloat.
+- **Improving from imagination.** Proposing changes for situations that did not occur.
+- **Appending forever.** Every friction becomes a new clause. Nothing is ever re-cut.
+- **Fixing the body when the trigger is broken.** Rewriting content nobody loaded.
+- **Manufacturing findings.** Producing a list because a list is expected.
+- **New skill for one incident.** A permanent context cost for a situation seen once.

@@ -24,30 +24,50 @@ Or test locally during development:
 claude --plugin-dir ./plugins/terma --plugin-dir ./plugins/tsal
 ```
 
-## Quick Start
+## What's in it
 
-Use `/terma:orient` to begin each session. Use `/terma:research :question` to probe the codebase and write a report to `/research`. Then, use `/terma:plan` to plan a change to the application.
+Skills, not procedures. Each one is an index card of crystallized wisdom meant to change how a
+situation is seen before anything is done — dense enough to be worth loading, narrow enough to
+compose with the others. Most fire on their own when the situation calls for them.
 
-Use `/terma:implement` to spin up one or more well-instructed subagents to implement the plan.
+**Thinking about change**
 
-Use `/terma:code-review` after implementation. Use `/terma:ideate` to brainstorm.
+| Skill | The idea |
+|-------|----------|
+| `surface-forks` | Find what a change collides with before making it, then name the routes through |
+| `convergent-planning` | A plan is a sequence of ambiguity collapses; a step nothing could contradict is not a step |
+| `concurrent-change` | What can happen at once is decided by what the pieces must agree on |
+| `idea-to-prototype` | Open, then close, then open — and find the fastest thing that would settle it |
 
-## Core Commands
+**Thinking about code**
 
-| Command | Purpose |
-|---------|---------|
-| `/terma:orient` | Explore and summarize the project structure |
-| `/terma:research` | Deep-dive investigation, writes report to `/research` |
-| `/terma:plan` | Plan next steps without implementing |
-| `/terma:implement` | Delegate implementation to subagents |
-| `/terma:code-review` | Review code for quality and consistency |
-| `/terma:ideate` | Brainstorm using the ideation card deck |
+| Skill | The idea |
+|-------|----------|
+| `writing-code` | Values over places, data over ceremony, the program as the story of what it does |
+| `domain-modeling` | The model is a claim about the world; the words are the model |
+| `decomposition` | Boundaries isolate change, not enable reuse — cut by what changes together |
+| `implement` | Always know the distance to the last checkpoint; stop rather than compensate |
+| `code-review` | Not whether the code is good — what it will cost the next person to change it |
+| `investigate-debug` | The discipline of not knowing yet; every action should divide the possibilities |
+
+**Getting oriented, and everything else**
+
+| Skill | The idea |
+|-------|----------|
+| `orient` | Build a model that predicts, not a summary that covers |
+| `research` | Answer the question actually asked, at a confidence stated honestly |
+| `ideate` | A deck of moves — good thinking is playing the right card at the right time |
+| `authoring-skills` | Say the thing that is not already known; cut rather than append |
+| `skill-improver` | Turn real friction into a change, usually a sharper sentence rather than a new one |
+
+`plan` routes to whichever of the planning skills the moment calls for.
 
 ## Patterns
 
-- feature dev: `/terma:orient`, `/terma:plan`, `/terma:implement`, `/terma:code-review`
-- research: `/terma:orient`, `/terma:research`
-- brainstorm: `/terma:ideate`
+- feature dev: `orient`, `plan`, `surface-forks`, `implement`, `code-review`
+- research: `orient`, `research`
+- something is broken: `investigate-debug`
+- a new idea: `ideate`, `idea-to-prototype`
 
 ## Structure
 
@@ -56,8 +76,7 @@ Use `/terma:code-review` after implementation. Use `/terma:ideate` to brainstorm
 plugins/terma/                    # Process & philosophy plugin
   .claude-plugin/plugin.json      # Plugin manifest
   agents/                         # Subagent definitions
-  skills/                         # Commands & meta skills
-  lib/                            # Shared philosophy & process modules
+  skills/                         # One directory per skill, each a self-contained SKILL.md
 plugins/tsal/                     # Domain-specific skills plugin
   .claude-plugin/plugin.json      # Plugin manifest
   skills/                         # Domain skills (bevy, godot, strudel, etc.)
@@ -65,11 +84,9 @@ plugins/tsal/                     # Domain-specific skills plugin
 
 ## Customizing
 
-Edit anything under `plugins/terma/` or `plugins/tsal/`. The `lib/` directory in terma contains composable modules referenced by skills via `@` paths. Domain-specific skills live in tsal and can be modified independently.
-
-## Trivia
-
-The `subagent.md` lib module encourages "ultrathinking", which may burn through usage quickly. Consider customizing it manually until we have variables.
+Edit anything under `plugins/terma/` or `plugins/tsal/`. Each skill is self-contained — there are
+no shared includes to chase, so a skill can be rewritten or deleted without touching anything else.
+`authoring-skills` describes what a good one looks like if you want to add your own.
 
 ## License
 
