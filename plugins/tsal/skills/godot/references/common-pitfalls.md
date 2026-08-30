@@ -516,3 +516,23 @@ When encountering issues, check:
 3. **Enable visible collision shapes**: Debug → Visible Collision Shapes
 4. **Read error messages carefully**: They often point to the exact issue
 5. **Consult official docs**: https://docs.godotengine.org/
+
+## Pitfall: Triangle Winding When Generating Meshes in Code
+
+**Problem:** Procedurally generated meshes (SurfaceTool/ArrayMesh) are invisible from
+the intended side AND balls/characters fall through them — with no errors anywhere.
+
+**Root cause:** Godot front faces are **CLOCKWISE as seen by the viewer** (opposite of
+OpenGL's CCW convention). Equivalently: the right-hand-rule normal of a correctly
+wound triangle points **AWAY from the visible side**. Getting this backwards makes
+faces backface-culled visually, and `ConcavePolygonShape3D` (one-sided in Jolt, with
+`backface_collision=false` by default) intangible from the intended side — the two
+symptoms always appear together and mimic "mesh not rendering at all".
+
+**Also:** when you compute `n = (b-a).cross(c-a)` for a correctly wound face, that RH
+normal faces away from the viewer — negate it before `SurfaceTool.set_normal()` or
+lights will illuminate the wrong side (surfaces render but ignore nearby lights).
+
+**Verify empirically, not by eye:** dump the mesh to OBJ and check a known face (e.g.
+a floor seen from above must have RH normal (0,-1,0)), or raycast against the
+collision shape from the visible side.
