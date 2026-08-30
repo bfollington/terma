@@ -4,9 +4,11 @@
 [cc-by-sa]: http://creativecommons.org/licenses/by-sa/4.0/
 [cc-by-sa-shield]: https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg
 
-This is a highly-opinionated library of philosophy and process for developing software with LLMs, specifically Claude Code.
+A highly-opinionated library of philosophy and process for developing software with LLMs.
 
-Distributed as a Claude Code plugin marketplace.
+Works with any agent that reads `SKILL.md` — Claude Code, Codex, Cursor, Gemini CLI,
+Zed, Copilot and others — and installs as a Claude Code plugin marketplace. Both read
+the same files.
 
 ## Installation
 
@@ -14,7 +16,7 @@ Distributed as a Claude Code plugin marketplace.
 via the [skills CLI](https://skills.sh):
 
 ```
-npx skills add benfollington/terma
+npx skills add bfollington/terma
 ```
 
 Add `-s convergent-planning,surface-forks` to take only some, or `-l` to list what's
@@ -101,6 +103,9 @@ plugins/tsal/                     # Domain-specific skills plugin
 Edit anything under `plugins/terma/` or `plugins/tsal/`. Each skill is self-contained — there are
 no shared includes to chase, so a skill can be rewritten or deleted without touching anything else.
 `authoring-skills` describes what a good one looks like if you want to add your own.
+
+`CANDIDATES.md` lists skills worth writing and the reasoning for each, deliberately unwritten
+until real friction calls for them.
 
 ## License
 
