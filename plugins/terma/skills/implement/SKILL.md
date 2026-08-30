@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Use when carrying out a change that is already decided — building the thing rather than choosing it. Concerns staying oriented while the code is in motion: knowing how far from the last checkpoint, noticing when the plan has stopped matching what is being found, and stopping rather than compensating. Trigger on executing a plan or building a defined feature. Do NOT use for deciding what to build, or for restructuring code that already works.
+description: Use when carrying out a change that is already decided — building the thing rather than choosing it. Concerns staying oriented while the code is in motion — knowing how far from the last checkpoint, noticing when the plan has stopped matching what is being found, and stopping rather than compensating. Trigger on executing a plan or building a defined feature. Do NOT use for deciding what to build, or for restructuring code that already works.
 ---
 
 # Implement

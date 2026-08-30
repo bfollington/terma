@@ -1,3 +1,8 @@
+---
+name: claude-plugins
+description: Reference for building and distributing Claude Code plugins — plugin.json and marketplace.json structure, bundling commands, agents, skills and hooks, versioning, and publishing a marketplace. Use when creating or packaging a plugin, setting up a marketplace, or debugging why a plugin's components are not loading.
+---
+
 # Claude Code Plugins Quick Reference
 
 Full docs:
