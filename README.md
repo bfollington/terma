@@ -10,7 +10,18 @@ Distributed as a Claude Code plugin marketplace.
 
 ## Installation
 
-From within Claude Code:
+**Any agent** — Claude Code, Codex, Cursor, Gemini CLI, Zed, Copilot and others,
+via the [skills CLI](https://skills.sh):
+
+```
+npx skills add benfollington/terma
+```
+
+Add `-s convergent-planning,surface-forks` to take only some, or `-l` to list what's
+there without installing. Skills land in `.agents/skills/` and are symlinked into
+whichever agent directories are detected.
+
+**Claude Code**, as a plugin marketplace:
 
 ```
 /plugin marketplace add <git-url-or-local-path>
@@ -18,11 +29,14 @@ From within Claude Code:
 /plugin install terma@tsal
 ```
 
-Or test locally during development:
+Or during development:
 
 ```
 claude --plugin-dir ./plugins/terma --plugin-dir ./plugins/tsal
 ```
+
+Both work off the same files — the skills CLI reads `.claude-plugin/marketplace.json`
+to find the plugin roots, so there is one source of truth and no duplication.
 
 ## What's in it
 

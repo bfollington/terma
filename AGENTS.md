@@ -4,12 +4,25 @@ Instructions for AI agents working on this repository.
 
 ## What This Is
 
-Terma is a Claude Code plugin marketplace. The repo root is the marketplace, containing two plugins: `plugins/terma/` (development process commands, agents, and lib modules) and `plugins/tsal/` (domain-specific skills).
+Terma is a library of agent skills, consumed two ways from one set of files:
+
+- **Any agent**, via the skills CLI — `npx skills add benfollington/terma`
+- **Claude Code**, as a plugin marketplace — the repo root is the marketplace
+
+These do not require separate layouts. The skills CLI reads
+`.claude-plugin/marketplace.json`, follows each plugin's `source` path, and discovers
+`<plugin>/skills/<name>/SKILL.md`. So the Claude plugin structure *is* the
+cross-agent structure — do not duplicate the skills to a top-level `skills/`
+directory, which would create two copies to keep in sync.
+
+The only real constraint is that a `SKILL.md` must be valid for both. That means
+frontmatter that parses as strict YAML, which is narrower than what Claude Code alone
+tolerates. See Validating below.
 
 ## Repository Layout
 
 ```
-.claude-plugin/marketplace.json     # Marketplace manifest
+.claude-plugin/marketplace.json     # Marketplace manifest — also the CLI's entry point
 plugins/terma/                      # Process & philosophy plugin
   .claude-plugin/plugin.json        # Plugin manifest
   agents/                           # Subagent definitions (6 .md files)
@@ -17,17 +30,35 @@ plugins/terma/                      # Process & philosophy plugin
 plugins/tsal/                       # Domain-specific skills plugin
   .claude-plugin/plugin.json        # Plugin manifest
   skills/                           # Domain skills (bevy, godot, strudel, etc.)
+plugins/notes/                      # sqlite-backed note taking
+scripts/validate-skills.mjs         # Frontmatter validation (run before committing)
 .claude/commands/                   # Project-local dev commands (not part of plugin)
 build.ts, build.sh                  # Legacy build tools (optional)
 ```
 
-## Validating the Marketplace
+## Validating
 
-Validate the marketplace structure:
+Two consumers, so two checks. Run both before committing:
 
 ```bash
-claude plugin validate .
+node scripts/validate-skills.mjs   # frontmatter — catches silently-skipped skills
+claude plugin validate .           # marketplace manifest structure
 ```
+
+`validate-skills.mjs` exists because malformed frontmatter does not fail loudly — it
+makes a skill *disappear*. `npx skills add` prints a warning that scrolls past and
+installs everything else, so the skill is simply absent for every consumer and nothing
+says why. The specific trap: an unquoted `": "` anywhere in a description parses as a
+nested YAML mapping and takes the whole block down. Use an em dash instead, or quote
+the value.
+
+To check discovery end to end the way a consumer sees it:
+
+```bash
+cd $(mktemp -d) && git init -q . && npx skills add /path/to/terma -l
+```
+
+It should report every skill and warn about none.
 
 Or from within Claude Code:
 
@@ -112,8 +143,13 @@ Domain-specific skills go in `plugins/tsal/skills/`. Meta/process skills go in `
 
 1. Create a directory under the appropriate plugin's `skills/`
 2. Add a `SKILL.md` with YAML frontmatter (`name`, `description`)
-3. Add `references/` subdirectory for supporting documentation
-4. Add `assets/` for templates, examples, etc.
+3. `name` must match the directory name exactly — it is what the CLI installs as
+4. Keep `description` free of unquoted `": "`; an em dash reads better anyway
+5. Add `references/` for supporting documentation, `assets/` for templates
+6. Run `node scripts/validate-skills.mjs`
+
+For what belongs *in* a skill — density, triggers, failure modes — the house style is
+`plugins/terma/skills/authoring-skills/SKILL.md`.
 
 ### Adding a New Agent
 
