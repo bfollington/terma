@@ -20,8 +20,23 @@ npx skills add bfollington/terma
 ```
 
 Add `-s convergent-planning,surface-forks` to take only some, or `-l` to list what's
-there without installing. Skills land in `.agents/skills/` and are symlinked into
-whichever agent directories are detected.
+there without installing.
+
+For every project on the machine rather than the current one, install globally:
+
+```
+npx skills add bfollington/terma -g --skill '*' --agent '*' -y
+```
+
+Skills land in `~/.agents/skills/` — that is the real content, and the directory to
+back up or edit. How each agent picks them up from there varies: some get a symlink
+farm of their own (`~/.claude/skills/` is symlinks pointing back into `.agents`),
+while others — Codex among them — read `~/.agents/skills/` directly and get no
+per-agent directory at all. An empty `~/.codex/skills/` is not a failed install.
+
+Update later with `npx skills update -g`. The repo is the source, so local edits under
+`~/.agents/skills/` are overwritten on the next update — change `plugins/` and push
+instead.
 
 **Claude Code**, as a plugin marketplace:
 
@@ -39,6 +54,12 @@ claude --plugin-dir ./plugins/terma --plugin-dir ./plugins/tsal
 
 Both work off the same files — the skills CLI reads `.claude-plugin/marketplace.json`
 to find the plugin roots, so there is one source of truth and no duplication.
+
+Pick one for Claude Code rather than running both: the plugin presents skills as
+`terma:surface-forks` and a global install presents the same skill as `surface-forks`,
+so together they show up twice. The one thing only the plugin carries is
+`plugins/terma/agents/` — the skills CLI installs skills, not subagents, so a global
+install leaves those 6 behind. Copy them to `~/.claude/agents/` if you want them.
 
 ## What's in it
 

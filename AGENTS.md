@@ -6,7 +6,8 @@ Instructions for AI agents working on this repository.
 
 Terma is a library of agent skills, consumed two ways from one set of files:
 
-- **Any agent**, via the skills CLI — `npx skills add bfollington/terma`
+- **Any agent**, via the skills CLI — `npx skills add bfollington/terma`, or
+  `-g --skill '*' --agent '*' -y` to install once for the whole machine
 - **Claude Code**, as a plugin marketplace — the repo root is the marketplace
 
 These do not require separate layouts. The skills CLI reads
