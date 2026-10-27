@@ -33,6 +33,7 @@ plugins/tsal/                       # Domain-specific skills plugin
   skills/                           # Domain skills (bevy, godot, strudel, etc.)
 plugins/notes/                      # sqlite-backed note taking
 scripts/validate-skills.mjs         # Frontmatter validation (run before committing)
+scripts/eval-writing/               # Blind A/B eval for the writing skills (see its README)
 .claude/commands/                   # Project-local dev commands (not part of plugin)
 build.ts, build.sh                  # Legacy build tools (optional)
 ```

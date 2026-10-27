@@ -93,6 +93,8 @@ compose with the others. Most fire on their own when the situation calls for the
 |-------|----------|
 | `orient` | Build a model that predicts, not a summary that covers |
 | `research` | Answer the question actually asked, at a confidence stated honestly |
+| `writing-prose` | Write from where the reader will be standing — the stance, then how it changes between a live reply, a document, a design conversation and a prompt |
+| `writing-commits` | The reader arrives from blame with the diff and nothing else — the message has to carry the reason |
 | `ideate` | A deck of moves — good thinking is playing the right card at the right time |
 | `authoring-skills` | Say the thing that is not already known; cut rather than append |
 | `skill-improver` | Turn real friction into a change, usually a sharper sentence rather than a new one |

@@ -11,7 +11,7 @@
       "name": "terma",
       "source": "./plugins/terma",
       "description": "Commands, agents, and skills for structured LLM-assisted development",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "license": "CC-BY-SA-4.0"
     },
     {

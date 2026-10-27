@@ -45,6 +45,12 @@ Decompose by what changes together, not by what looks alike. Things that change 
 
 Structure grows organically. Do not abstract upfront into a system that anticipates needs nobody has expressed, and do not defer all organisation to the end. Watch the linguistics of the codebase develop and let modules split off as they earn it.
 
+## Comments describe the code as it is
+
+A comment is for the reader who opens this file next year. It says what the code does where the code cannot say it, and nothing else. It does not defend the approach or argue with an alternative — the code stands for itself. It does not describe what the code would otherwise do, how it used to work, or what went wrong before; the present is the only tense that stays true. It carries no issue numbers and never quotes or names the person who asked for the change, because the commit message holds that history.
+
+Leave existing comments in touched files as they are unless asked. Rewriting them puts noise in the diff.
+
 ## Duplication, and the cost of being wrong
 
 Duplication is cheaper than the wrong abstraction. Copy first; wait for the pattern to show itself under three real uses; then extract — and extract the stable, generic thing, not the business logic that will diverge next month.
@@ -69,4 +75,5 @@ Slow is smooth and smooth is fast. One thing at a time, each cut deliberate, no 
 - **Swallowed errors.** A caught exception with an empty body. The failure still happened; now nothing knows.
 - **Premature abstraction.** A shared helper extracted on the second use, which the third use then has to fight.
 - **Anaemic splitting.** Types in one file, functions in another, nothing gained but two files to open.
+- **Defensive comments.** A comment arguing for the code, or recounting its history, where a description of its behavior belongs.
 - **Cleverness.** Code that is a puzzle. If explaining it takes a paragraph, it is not simple, however short.
