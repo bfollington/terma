@@ -1,0 +1,3 @@
+TASK: Write the "Configuration" section of the README for a CLI tool called `syncer`, which copies a local folder to an S3 bucket.
+
+Facts: config lives in `syncer.toml` in the folder being synced, or in the file given by `--config`. Keys: `bucket` (required, string), `prefix` (optional, string, default ""), `exclude` (optional, list of glob patterns, default empty), `concurrency` (optional, integer, default 4, max 32). Command-line flags of the same name override the file. AWS credentials come from the standard AWS credential chain; syncer does not read credentials from syncer.toml. If `bucket` is missing, syncer exits with code 2 before touching the network.

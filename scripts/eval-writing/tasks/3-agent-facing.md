@@ -1,0 +1,4 @@
+TASK: Write three things:
+(a) A tool description (the text an LLM agent reads to decide how to call it) for a tool `deploy_preview(branch: string, ttl_hours?: number)`. It builds the branch, deploys it to a temporary URL, and returns the URL. Default ttl is 24, max 168. It fails if the branch has no successful CI run on its head commit. Deploys take 2–6 minutes; the call blocks until done.
+(b) The error message the tool returns when the branch's head commit has no successful CI run.
+(c) A short status report to the team lead on a debugging session. Verified: the preview deploys started failing on Oct 21; the failures all show "ENOSPC: no space left on device" in the build step; the build cache volume is at 100%. Not verified: you suspect the cache grew because the Oct 20 dependency upgrade doubled node_modules, but you have not measured node_modules size before and after. You recommend clearing the cache and adding a size cap.
